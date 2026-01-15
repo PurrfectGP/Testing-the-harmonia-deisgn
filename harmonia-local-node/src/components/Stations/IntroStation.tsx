@@ -5,6 +5,7 @@
 
 import { motion } from 'framer-motion';
 import { useApp, Phase } from '../../context/AppContext';
+import { Logo } from '../Logo';
 
 const styles = {
   container: {
@@ -13,9 +14,9 @@ const styles = {
     padding: '3rem 2rem',
     textAlign: 'center' as const,
   },
-  logo: {
-    width: '80px',
-    height: '80px',
+  logoContainer: {
+    width: '100px',
+    height: '100px',
     margin: '0 auto 2rem',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, var(--maroon), var(--maroon-deep))',
@@ -24,12 +25,13 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 0 40px rgba(212, 168, 83, 0.3)',
+    overflow: 'hidden',
   },
-  logoText: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: '2.5rem',
-    fontWeight: 700,
-    color: 'var(--gold)',
+  logoImage: {
+    width: '80px',
+    height: '80px',
+    objectFit: 'contain' as const,
+    filter: 'drop-shadow(0 0 10px rgba(212, 168, 83, 0.5))',
   },
   title: {
     fontFamily: "'Cormorant Garamond', serif",
@@ -123,12 +125,12 @@ export function IntroStation() {
     >
       {/* Logo */}
       <motion.div
-        style={styles.logo}
+        style={styles.logoContainer}
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: 'spring', stiffness: 200, delay: 0.8 }}
       >
-        <span style={styles.logoText}>H</span>
+        <Logo size={80} animated={true} />
       </motion.div>
 
       {/* Title */}

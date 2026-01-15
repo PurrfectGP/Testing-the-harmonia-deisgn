@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { Logo } from './Logo';
 
 interface FusionSequenceProps {
   onComplete?: () => void;
@@ -164,8 +165,8 @@ export function FusionSequence({ onComplete }: FusionSequenceProps) {
       boxShadow: '0 0 40px rgba(212, 168, 83, 0.4), inset 0 0 40px rgba(212, 168, 83, 0.2)',
     },
     logo: {
-      width: '100px',
-      height: '100px',
+      width: '120px',
+      height: '120px',
       borderRadius: '50%',
       border: '3px solid var(--gold)',
       display: 'flex',
@@ -173,12 +174,13 @@ export function FusionSequence({ onComplete }: FusionSequenceProps) {
       justifyContent: 'center',
       background: 'var(--void-black)',
       boxShadow: '0 0 60px rgba(212, 168, 83, 0.5)',
+      overflow: 'hidden',
     },
-    logoText: {
-      fontFamily: "'Cormorant Garamond', serif",
-      fontSize: '3rem',
-      fontWeight: 700,
-      color: 'var(--gold)',
+    logoImage: {
+      width: '90px',
+      height: '90px',
+      objectFit: 'contain' as const,
+      filter: 'drop-shadow(0 0 15px rgba(212, 168, 83, 0.6))',
     },
     textContainer: {
       marginTop: '2rem',
@@ -220,7 +222,7 @@ export function FusionSequence({ onComplete }: FusionSequenceProps) {
 
       {/* Logo */}
       <div ref={logoRef} style={styles.logo}>
-        <span style={styles.logoText}>H</span>
+        <Logo size={90} animated={false} />
       </div>
 
       {/* Text */}

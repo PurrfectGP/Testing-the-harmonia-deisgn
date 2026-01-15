@@ -333,4 +333,59 @@ After optimization, the production build produces:
 
 ---
 
+## 10. Custom Logo Setup
+
+To add your own logo:
+
+1. Add your logo image to `src/assets/logo.png`
+2. The Logo component will automatically detect and use it
+3. If no logo.png exists, an SVG "H" fallback is displayed
+
+**Supported formats**: PNG, JPG, SVG, WebP
+
+---
+
+## 11. Deployment Guide
+
+### Option 1: Vercel (Recommended - Free)
+
+1. Push code to GitHub
+2. Go to [vercel.com](https://vercel.com) and sign up with GitHub
+3. Click "New Project" → Import your repository
+4. Vercel auto-detects Vite and deploys automatically
+5. Your site is live at `your-project.vercel.app`
+
+**Configuration file**: `vercel.json` is already included.
+
+### Option 2: Netlify (Free)
+
+1. Push code to GitHub
+2. Go to [netlify.com](https://netlify.com) and sign up
+3. Click "Add new site" → "Import an existing project"
+4. Select your GitHub repo
+5. Deploy settings are auto-detected from `netlify.toml`
+
+### Option 3: GitHub Pages (Free)
+
+1. Install gh-pages: `npm install -D gh-pages`
+2. Add to `package.json` scripts:
+   ```json
+   "predeploy": "npm run build",
+   "deploy": "gh-pages -d dist"
+   ```
+3. Update `vite.config.ts` base path:
+   ```ts
+   base: '/your-repo-name/',
+   ```
+4. Run `npm run deploy`
+
+### Local Preview
+
+```bash
+npm run build
+npm run preview
+```
+
+---
+
 **All sessions completed. The Harmonia Local Node is production-ready.**

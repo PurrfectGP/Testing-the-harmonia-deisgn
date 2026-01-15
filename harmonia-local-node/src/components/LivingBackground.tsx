@@ -1,14 +1,17 @@
 /**
  * LivingBackground - The visual engine layer
  * Manages transitions between Particle Swarm, Eye, Orbit, and Helix visualizations
+ * Enhanced with logo masking effect and reduced motion support
  */
 
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Particles, { initParticlesEngine } from '@tsparticles/react';
 import { loadSlim } from '@tsparticles/slim';
-import { useState } from 'react';
 import { useApp, Phase } from '../context/AppContext';
+
+// Lazy load 3D Helix for performance
+const DNAHelix3D = lazy(() => import('./3D/DNAHelix3D'));
 
 // Styles
 const styles = {
@@ -41,10 +44,21 @@ const styles = {
 };
 
 // ============================================
-// PARTICLE SWARM LAYER (Phase 0: Intro)
+// PARTICLE SWARM LAYER (Phase 0: Intro) with Logo Masking
 // ============================================
-function ParticleSwarm() {
+function ParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
   const [init, setInit] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    // Check for reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     initParticlesEngine(async (engine) => {
@@ -54,10 +68,14 @@ function ParticleSwarm() {
     });
   }, []);
 
+  // Reduce particle count on mobile for performance
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const particleCount = isMobile ? 40 : 80;
+
   const particlesOptions = useMemo(() => ({
     fullScreen: false,
     background: { color: { value: 'transparent' } },
-    fpsLimit: 60,
+    fpsLimit: prefersReducedMotion ? 30 : 60,
     particles: {
       color: { value: '#D4A853' },
       links: {
@@ -68,24 +86,24 @@ function ParticleSwarm() {
         width: 1,
       },
       move: {
-        enable: true,
-        speed: 1,
+        enable: !prefersReducedMotion,
+        speed: prefersReducedMotion ? 0.3 : 1,
         direction: 'none' as const,
         outModes: { default: 'bounce' as const },
         attract: {
-          enable: true,
+          enable: !prefersReducedMotion,
           rotateX: 600,
           rotateY: 1200,
         },
       },
       number: {
-        value: 80,
+        value: particleCount,
         density: { enable: true, area: 800 },
       },
       opacity: {
         value: { min: 0.3, max: 0.8 },
         animation: {
-          enable: true,
+          enable: !prefersReducedMotion,
           speed: 1,
           minimumValue: 0.3,
         },
@@ -97,8 +115,8 @@ function ParticleSwarm() {
     },
     interactivity: {
       events: {
-        onHover: { enable: true, mode: 'repulse' },
-        onClick: { enable: true, mode: 'push' },
+        onHover: { enable: !prefersReducedMotion, mode: 'repulse' as const },
+        onClick: { enable: true, mode: 'push' as const },
       },
       modes: {
         repulse: { distance: 100, duration: 0.4 },
@@ -106,7 +124,7 @@ function ParticleSwarm() {
       },
     },
     detectRetina: true,
-  }), []);
+  }), [prefersReducedMotion, particleCount]);
 
   if (!init) return null;
 
@@ -123,6 +141,64 @@ function ParticleSwarm() {
         options={particlesOptions}
         style={{ width: '100%', height: '100%' }}
       />
+      {/* Logo mask overlay effect */}
+      {withLogoMask && (
+        <motion.div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '200px',
+            height: '200px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: [0.3, 0.6, 0.3], scale: 1 }}
+          transition={{ opacity: { duration: 3, repeat: Infinity }, scale: { duration: 1 } }}
+        >
+          <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
+            <defs>
+              <filter id="logoGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            {/* H logo outline with glow */}
+            <text
+              x="50"
+              y="65"
+              textAnchor="middle"
+              fontFamily="'Cormorant Garamond', serif"
+              fontSize="60"
+              fontWeight="700"
+              fill="none"
+              stroke="#D4A853"
+              strokeWidth="1"
+              filter="url(#logoGlow)"
+              opacity="0.6"
+            >
+              H
+            </text>
+            {/* Circular frame */}
+            <circle
+              cx="50"
+              cy="50"
+              r="45"
+              fill="none"
+              stroke="#D4A853"
+              strokeWidth="0.5"
+              opacity="0.4"
+            />
+          </svg>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -376,9 +452,41 @@ function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
 }
 
 // ============================================
-// HELIX LAYER (Phase 3: Biometric)
+// HELIX LAYER (Phase 3: Biometric) - 3D Enhanced
 // ============================================
 function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  // Use 3D helix for non-reduced motion users
+  if (!prefersReducedMotion) {
+    return (
+      <motion.div
+        style={styles.layer}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        <Suspense fallback={<HelixSVGFallback isGlowing={isGlowing} />}>
+          <DNAHelix3D isGlowing={isGlowing} />
+        </Suspense>
+      </motion.div>
+    );
+  }
+
+  return <HelixSVGFallback isGlowing={isGlowing} />;
+}
+
+// SVG Fallback for reduced motion or loading state
+function HelixSVGFallback({ isGlowing = false }: { isGlowing?: boolean }) {
   return (
     <motion.div
       style={styles.layer}
@@ -387,11 +495,9 @@ function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.8 }}
     >
-      <motion.svg
+      <svg
         viewBox="0 0 200 300"
         style={{ ...styles.svgContainer, maxHeight: '80vh' }}
-        animate={{ rotateY: 360 }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
       >
         <defs>
           <filter id="helixGlow" x="-50%" y="-50%" width="200%" height="200%">
@@ -406,35 +512,23 @@ function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
             <stop offset="100%" stopColor="#F0C86E" />
           </linearGradient>
         </defs>
-
-        {/* Left helix strand */}
-        <motion.path
+        <path
           d="M60 20 Q140 60 60 100 Q140 140 60 180 Q140 220 60 260 Q140 300 60 340"
           stroke="url(#helixGoldGrad)"
           strokeWidth="3"
           fill="none"
           filter={isGlowing ? 'url(#helixGlow)' : undefined}
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 2, ease: 'easeInOut' }}
         />
-
-        {/* Right helix strand */}
-        <motion.path
+        <path
           d="M140 20 Q60 60 140 100 Q60 140 140 180 Q60 220 140 260 Q60 300 140 340"
           stroke="#722F37"
           strokeWidth="3"
           fill="none"
           opacity="0.7"
           filter={isGlowing ? 'url(#helixGlow)' : undefined}
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 2, ease: 'easeInOut', delay: 0.2 }}
         />
-
-        {/* Rungs */}
         {[60, 100, 140, 180, 220, 260].map((y, i) => (
-          <motion.line
+          <line
             key={i}
             x1="60"
             y1={y}
@@ -443,26 +537,9 @@ function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
             stroke="#D4A853"
             strokeWidth="1.5"
             opacity="0.4"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
-            style={{ transformOrigin: 'center' }}
           />
         ))}
-
-        {/* Electric crackle effect when glowing */}
-        {isGlowing && (
-          <motion.path
-            d="M60 60 L75 55 L85 65 L100 58 L115 62 L130 56 L140 60"
-            stroke="#FFEB3B"
-            strokeWidth="2"
-            fill="none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 0.3, repeat: Infinity }}
-          />
-        )}
-      </motion.svg>
+      </svg>
     </motion.div>
   );
 }
@@ -531,7 +608,7 @@ export function LivingBackground() {
     <div style={styles.container}>
       <AnimatePresence mode="wait">
         {state.currentPhase === Phase.INTRO && (
-          <ParticleSwarm key="particles" />
+          <ParticleSwarm key="particles" withLogoMask={true} />
         )}
 
         {state.currentPhase === Phase.VISUAL && (

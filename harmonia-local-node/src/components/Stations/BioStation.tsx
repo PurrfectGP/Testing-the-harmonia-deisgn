@@ -1,12 +1,16 @@
 /**
  * BioStation - Phase 3: Biometric Ingestion
  * Features DNA Helix visualization with file upload trigger
+ * Enhanced with React Three Fiber 3D helix
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { useApp, Phase, StationState } from '../../context/AppContext';
+
+// Lazy load the 3D component for performance
+const DNAHelix3D = lazy(() => import('../3D/DNAHelix3D'));
 
 const styles = {
   container: {
@@ -139,8 +143,8 @@ const styles = {
   },
 };
 
-// Animated DNA Helix SVG Component
-function DNAHelix({ isGlowing = false }: { isGlowing: boolean }) {
+// SVG Fallback for reduced motion preference
+function DNAHelixFallback({ isGlowing = false }: { isGlowing: boolean }) {
   return (
     <motion.svg
       viewBox="0 0 100 200"
@@ -162,20 +166,13 @@ function DNAHelix({ isGlowing = false }: { isGlowing: boolean }) {
           <stop offset="100%" stopColor="#F0C86E" />
         </linearGradient>
       </defs>
-
-      {/* Left helix strand */}
       <motion.path
         d="M30 10 Q70 35 30 60 Q70 85 30 110 Q70 135 30 160 Q70 185 30 210"
         stroke="url(#goldGrad)"
         strokeWidth="3"
         fill="none"
         filter={isGlowing ? 'url(#helixGlow)' : undefined}
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 2, ease: 'easeInOut' }}
       />
-
-      {/* Right helix strand */}
       <motion.path
         d="M70 10 Q30 35 70 60 Q30 85 70 110 Q30 135 70 160 Q30 185 70 210"
         stroke="#722F37"
@@ -183,62 +180,28 @@ function DNAHelix({ isGlowing = false }: { isGlowing: boolean }) {
         fill="none"
         opacity="0.7"
         filter={isGlowing ? 'url(#helixGlow)' : undefined}
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 2, ease: 'easeInOut', delay: 0.2 }}
       />
-
-      {/* Rungs */}
       {[35, 60, 85, 110, 135, 160, 185].map((y, i) => (
-        <motion.line
-          key={i}
-          x1="30"
-          y1={y}
-          x2="70"
-          y2={y}
-          stroke="#D4A853"
-          strokeWidth="1.5"
-          opacity="0.4"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.4, delay: 0.5 + i * 0.1 }}
-          style={{ transformOrigin: 'center' }}
-        />
+        <line key={i} x1="30" y1={y} x2="70" y2={y} stroke="#D4A853" strokeWidth="1.5" opacity="0.4" />
       ))}
-
-      {/* Electric crackle effect */}
-      {isGlowing && (
-        <>
-          <motion.path
-            d="M30 35 L38 32 L45 38 L52 34 L60 36 L70 35"
-            stroke="#FFEB3B"
-            strokeWidth="2"
-            fill="none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 0.3 }}
-          />
-          <motion.path
-            d="M30 85 L40 82 L50 88 L60 84 L70 85"
-            stroke="#FFEB3B"
-            strokeWidth="2"
-            fill="none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 0.5, delay: 0.1 }}
-          />
-          <motion.path
-            d="M30 135 L42 132 L48 138 L58 134 L70 135"
-            stroke="#FFEB3B"
-            strokeWidth="2"
-            fill="none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 0.4, delay: 0.2 }}
-          />
-        </>
-      )}
     </motion.svg>
+  );
+}
+
+// 3D Helix wrapper with loading state
+function DNAHelixDisplay({ isGlowing }: { isGlowing: boolean }) {
+  // Check for reduced motion preference
+  const prefersReducedMotion = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (prefersReducedMotion) {
+    return <DNAHelixFallback isGlowing={isGlowing} />;
+  }
+
+  return (
+    <Suspense fallback={<DNAHelixFallback isGlowing={isGlowing} />}>
+      <DNAHelix3D isGlowing={isGlowing} />
+    </Suspense>
   );
 }
 
@@ -362,7 +325,7 @@ export function BioStation() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.5 }}
       >
-        <DNAHelix isGlowing={isGlowing || isDragActive} />
+        <DNAHelixDisplay isGlowing={isGlowing || isDragActive} />
 
         <div
           {...getRootProps()}

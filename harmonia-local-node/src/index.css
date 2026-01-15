@@ -390,3 +390,221 @@ p {
 .mb-2 { margin-bottom: var(--spacing-sm); }
 .mb-3 { margin-bottom: var(--spacing-md); }
 .mb-4 { margin-bottom: var(--spacing-lg); }
+
+/* ============================================
+   LOADING SPINNER
+   ============================================ */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   ACCESSIBILITY - REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .gold-foil-text {
+    animation: none;
+    background-position: 0% 50%;
+  }
+
+  .pulse-gold {
+    animation: none;
+    box-shadow: 0 0 0 0 rgba(212, 168, 83, 0);
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY - FOCUS STYLES
+   ============================================ */
+*:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(212, 168, 83, 0.3);
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1rem 2rem;
+  background: var(--gold);
+  color: var(--void-black);
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  z-index: 9999;
+  transition: top 0.3s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================
+   MOBILE RESPONSIVENESS
+   ============================================ */
+@media screen and (max-width: 768px) {
+  :root {
+    --spacing-xl: 2rem;
+    --spacing-lg: 1.5rem;
+  }
+
+  h1 { font-size: clamp(1.75rem, 6vw, 2.5rem); }
+  h2 { font-size: clamp(1.5rem, 5vw, 2rem); }
+  h3 { font-size: clamp(1.25rem, 4vw, 1.5rem); }
+
+  .station-content {
+    width: 95%;
+    padding: var(--spacing-lg);
+  }
+
+  .glass-monolith {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Progress indicator - move to bottom on mobile */
+  .progress-indicator-mobile {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    top: auto;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  /* Reduce particle effects on mobile for performance */
+  .particles-mobile-reduce {
+    display: none;
+  }
+
+  /* Touch-friendly buttons */
+  .btn {
+    min-height: 48px;
+    padding: 1rem 1.5rem;
+  }
+
+  /* Upload zone adjustments */
+  .upload-zone {
+    padding: var(--spacing-lg);
+  }
+
+  /* Felix Terminal adjustments */
+  .felix-input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  :root {
+    --spacing-xl: 1.5rem;
+    --spacing-lg: 1rem;
+  }
+
+  .station-content {
+    padding: var(--spacing-md);
+  }
+
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================
+   HIGH CONTRAST MODE
+   ============================================ */
+@media (prefers-contrast: high) {
+  :root {
+    --gold: #FFD700;
+    --gold-pure: #FFD700;
+    --gold-champagne: #FFFFFF;
+    --text-primary: #FFFFFF;
+    --text-secondary: #E0E0E0;
+    --text-muted: #CCCCCC;
+    --dark-surface: #000000;
+    --dark-border: #FFFFFF;
+  }
+
+  .glass-monolith {
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid var(--gold);
+  }
+
+  .btn-primary {
+    background: var(--gold);
+    color: #000000;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .glass-monolith {
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: none;
+  }
+
+  .pulse-gold,
+  .gold-foil-text {
+    animation: none;
+  }
+
+  /* Hide non-essential elements */
+  .particles-container,
+  .living-background,
+  .progress-indicator {
+    display: none !important;
+  }
+}

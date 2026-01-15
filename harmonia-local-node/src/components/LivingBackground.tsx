@@ -1,0 +1,581 @@
+/**
+ * LivingBackground - The visual engine layer
+ * Manages transitions between Particle Swarm, Eye, Orbit, and Helix visualizations
+ */
+
+import { useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Particles, { initParticlesEngine } from '@tsparticles/react';
+import { loadSlim } from '@tsparticles/slim';
+import { useState } from 'react';
+import { useApp, Phase } from '../context/AppContext';
+
+// Styles
+const styles = {
+  container: {
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 0,
+    overflow: 'hidden',
+    background: 'var(--void-black)',
+  },
+  layer: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  svgContainer: {
+    width: '60vw',
+    height: '60vh',
+    maxWidth: '600px',
+    maxHeight: '600px',
+  },
+};
+
+// ============================================
+// PARTICLE SWARM LAYER (Phase 0: Intro)
+// ============================================
+function ParticleSwarm() {
+  const [init, setInit] = useState(false);
+
+  useEffect(() => {
+    initParticlesEngine(async (engine) => {
+      await loadSlim(engine);
+    }).then(() => {
+      setInit(true);
+    });
+  }, []);
+
+  const particlesOptions = useMemo(() => ({
+    fullScreen: false,
+    background: { color: { value: 'transparent' } },
+    fpsLimit: 60,
+    particles: {
+      color: { value: '#D4A853' },
+      links: {
+        color: '#D4A853',
+        distance: 150,
+        enable: true,
+        opacity: 0.3,
+        width: 1,
+      },
+      move: {
+        enable: true,
+        speed: 1,
+        direction: 'none' as const,
+        outModes: { default: 'bounce' as const },
+        attract: {
+          enable: true,
+          rotateX: 600,
+          rotateY: 1200,
+        },
+      },
+      number: {
+        value: 80,
+        density: { enable: true, area: 800 },
+      },
+      opacity: {
+        value: { min: 0.3, max: 0.8 },
+        animation: {
+          enable: true,
+          speed: 1,
+          minimumValue: 0.3,
+        },
+      },
+      shape: { type: 'circle' },
+      size: {
+        value: { min: 1, max: 3 },
+      },
+    },
+    interactivity: {
+      events: {
+        onHover: { enable: true, mode: 'repulse' },
+        onClick: { enable: true, mode: 'push' },
+      },
+      modes: {
+        repulse: { distance: 100, duration: 0.4 },
+        push: { quantity: 4 },
+      },
+    },
+    detectRetina: true,
+  }), []);
+
+  if (!init) return null;
+
+  return (
+    <motion.div
+      style={styles.layer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 1 }}
+    >
+      <Particles
+        id="tsparticles"
+        options={particlesOptions}
+        style={{ width: '100%', height: '100%' }}
+      />
+    </motion.div>
+  );
+}
+
+// ============================================
+// EYE SVG LAYER (Phase 1: Visual)
+// ============================================
+function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mouseY?: number }) {
+  // Calculate pupil offset based on mouse position
+  const pupilOffsetX = (mouseX - 0.5) * 20;
+  const pupilOffsetY = (mouseY - 0.5) * 20;
+
+  return (
+    <motion.div
+      style={styles.layer}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ duration: 0.8, ease: 'easeInOut' }}
+    >
+      <motion.svg
+        viewBox="0 0 200 200"
+        style={styles.svgContainer}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+      >
+        {/* Outer glow */}
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <radialGradient id="eyeGradient" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#D4A853" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#722F37" stopOpacity="0.1" />
+          </radialGradient>
+        </defs>
+
+        {/* Background circle */}
+        <circle cx="100" cy="100" r="90" fill="url(#eyeGradient)" />
+
+        {/* Outer ring */}
+        <motion.circle
+          cx="100"
+          cy="100"
+          r="85"
+          stroke="#D4A853"
+          strokeWidth="1"
+          fill="none"
+          opacity="0.5"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 2, ease: 'easeInOut' }}
+        />
+
+        {/* Diamond frame */}
+        <motion.rect
+          x="30"
+          y="30"
+          width="140"
+          height="140"
+          stroke="#D4A853"
+          strokeWidth="0.5"
+          fill="none"
+          style={{ transform: 'rotate(45deg)', transformOrigin: 'center' }}
+          opacity="0.3"
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.3 }}
+          transition={{ duration: 1.5, delay: 0.5 }}
+        />
+
+        {/* Upper eyelid */}
+        <motion.path
+          d="M30 100 Q100 40 170 100"
+          stroke="#D4A853"
+          strokeWidth="2"
+          fill="none"
+          filter="url(#glow)"
+          initial={{ d: 'M30 100 Q100 100 170 100' }}
+          animate={{ d: 'M30 100 Q100 40 170 100' }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+        />
+
+        {/* Lower eyelid */}
+        <motion.path
+          d="M30 100 Q100 160 170 100"
+          stroke="#D4A853"
+          strokeWidth="2"
+          fill="none"
+          filter="url(#glow)"
+          initial={{ d: 'M30 100 Q100 100 170 100' }}
+          animate={{ d: 'M30 100 Q100 160 170 100' }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+        />
+
+        {/* Iris */}
+        <motion.circle
+          cx="100"
+          cy="100"
+          r="35"
+          stroke="#722F37"
+          strokeWidth="1"
+          fill="rgba(114, 47, 55, 0.2)"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+        />
+
+        {/* Pupil - tracks mouse */}
+        <motion.circle
+          cx={100 + pupilOffsetX}
+          cy={100 + pupilOffsetY}
+          r="15"
+          fill="#722F37"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+        />
+
+        {/* Pupil highlight */}
+        <motion.circle
+          cx={95 + pupilOffsetX}
+          cy={95 + pupilOffsetY}
+          r="5"
+          fill="#D4A853"
+          opacity="0.6"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.3, delay: 1 }}
+        />
+      </motion.svg>
+    </motion.div>
+  );
+}
+
+// ============================================
+// ORBIT SVG LAYER (Phase 2: Psychometric)
+// ============================================
+function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
+  return (
+    <motion.div
+      style={styles.layer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.8 }}
+    >
+      <motion.svg
+        viewBox="0 0 200 200"
+        style={styles.svgContainer}
+      >
+        <defs>
+          <filter id="orbitGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Outer orbit ring */}
+        <motion.circle
+          cx="100"
+          cy="100"
+          r="85"
+          stroke="#D4A853"
+          strokeWidth="1"
+          strokeDasharray="4 3"
+          fill="none"
+          opacity="0.5"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 30 / rotationSpeed, repeat: Infinity, ease: 'linear' }}
+          style={{ transformOrigin: 'center' }}
+        />
+
+        {/* Middle orbit ring */}
+        <motion.circle
+          cx="100"
+          cy="100"
+          r="60"
+          stroke="#D4A853"
+          strokeWidth="1"
+          strokeDasharray="4 3"
+          fill="none"
+          opacity="0.4"
+          animate={{ rotate: -360 }}
+          transition={{ duration: 20 / rotationSpeed, repeat: Infinity, ease: 'linear' }}
+          style={{ transformOrigin: 'center' }}
+        />
+
+        {/* Inner orbit ring */}
+        <motion.circle
+          cx="100"
+          cy="100"
+          r="35"
+          stroke="#D4A853"
+          strokeWidth="1"
+          strokeDasharray="4 3"
+          fill="none"
+          opacity="0.3"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 15 / rotationSpeed, repeat: Infinity, ease: 'linear' }}
+          style={{ transformOrigin: 'center' }}
+        />
+
+        {/* Center golden circle */}
+        <motion.circle
+          cx="100"
+          cy="100"
+          r="10"
+          fill="#D4A853"
+          filter="url(#orbitGlow)"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.5 }}
+        />
+
+        {/* Orbiting nodes */}
+        {[0, 120, 240].map((angle, i) => (
+          <motion.g
+            key={i}
+            animate={{ rotate: 360 }}
+            transition={{ duration: (25 - i * 5) / rotationSpeed, repeat: Infinity, ease: 'linear' }}
+            style={{ transformOrigin: '100px 100px' }}
+          >
+            <circle
+              cx={100 + Math.cos((angle * Math.PI) / 180) * (85 - i * 25)}
+              cy={100 + Math.sin((angle * Math.PI) / 180) * (85 - i * 25)}
+              r="6"
+              fill="#722F37"
+            />
+            <line
+              x1="100"
+              y1="100"
+              x2={100 + Math.cos((angle * Math.PI) / 180) * (85 - i * 25)}
+              y2={100 + Math.sin((angle * Math.PI) / 180) * (85 - i * 25)}
+              stroke="#D4A853"
+              strokeWidth="1"
+              opacity="0.5"
+            />
+          </motion.g>
+        ))}
+      </motion.svg>
+    </motion.div>
+  );
+}
+
+// ============================================
+// HELIX LAYER (Phase 3: Biometric)
+// ============================================
+function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
+  return (
+    <motion.div
+      style={styles.layer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.8 }}
+    >
+      <motion.svg
+        viewBox="0 0 200 300"
+        style={{ ...styles.svgContainer, maxHeight: '80vh' }}
+        animate={{ rotateY: 360 }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+      >
+        <defs>
+          <filter id="helixGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation={isGlowing ? '6' : '2'} result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <linearGradient id="helixGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#D4A853" />
+            <stop offset="100%" stopColor="#F0C86E" />
+          </linearGradient>
+        </defs>
+
+        {/* Left helix strand */}
+        <motion.path
+          d="M60 20 Q140 60 60 100 Q140 140 60 180 Q140 220 60 260 Q140 300 60 340"
+          stroke="url(#helixGoldGrad)"
+          strokeWidth="3"
+          fill="none"
+          filter={isGlowing ? 'url(#helixGlow)' : undefined}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 2, ease: 'easeInOut' }}
+        />
+
+        {/* Right helix strand */}
+        <motion.path
+          d="M140 20 Q60 60 140 100 Q60 140 140 180 Q60 220 140 260 Q60 300 140 340"
+          stroke="#722F37"
+          strokeWidth="3"
+          fill="none"
+          opacity="0.7"
+          filter={isGlowing ? 'url(#helixGlow)' : undefined}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 2, ease: 'easeInOut', delay: 0.2 }}
+        />
+
+        {/* Rungs */}
+        {[60, 100, 140, 180, 220, 260].map((y, i) => (
+          <motion.line
+            key={i}
+            x1="60"
+            y1={y}
+            x2="140"
+            y2={y}
+            stroke="#D4A853"
+            strokeWidth="1.5"
+            opacity="0.4"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
+            style={{ transformOrigin: 'center' }}
+          />
+        ))}
+
+        {/* Electric crackle effect when glowing */}
+        {isGlowing && (
+          <motion.path
+            d="M60 60 L75 55 L85 65 L100 58 L115 62 L130 56 L140 60"
+            stroke="#FFEB3B"
+            strokeWidth="2"
+            fill="none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 0.3, repeat: Infinity }}
+          />
+        )}
+      </motion.svg>
+    </motion.div>
+  );
+}
+
+// ============================================
+// FUSION LAYER (Phase 4: Transition)
+// ============================================
+function FusionVisualization() {
+  return (
+    <motion.div
+      style={{
+        ...styles.layer,
+        background: 'radial-gradient(circle, rgba(212,168,83,0.3) 0%, transparent 70%)',
+      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: [0, 1, 1, 0] }}
+      transition={{ duration: 4, times: [0, 0.3, 0.8, 1] }}
+    >
+      {/* Flash effect */}
+      <motion.div
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(212,168,83,0.5) 30%, transparent 70%)',
+        }}
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 2] }}
+        transition={{ duration: 2, delay: 1.5, ease: 'easeOut' }}
+      />
+    </motion.div>
+  );
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+export function LivingBackground() {
+  const { state } = useApp();
+  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
+  const [typingSpeed, setTypingSpeed] = useState(1);
+
+  // Track mouse position for Eye parallax
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    setMousePosition({
+      x: e.clientX / window.innerWidth,
+      y: e.clientY / window.innerHeight,
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [handleMouseMove]);
+
+  // Listen for typing speed events (from Felix Terminal)
+  useEffect(() => {
+    const handleTypingSpeed = (e: CustomEvent) => {
+      setTypingSpeed(e.detail.speed || 1);
+    };
+    window.addEventListener('typing-speed' as any, handleTypingSpeed);
+    return () => window.removeEventListener('typing-speed' as any, handleTypingSpeed);
+  }, []);
+
+  return (
+    <div style={styles.container}>
+      <AnimatePresence mode="wait">
+        {state.currentPhase === Phase.INTRO && (
+          <ParticleSwarm key="particles" />
+        )}
+
+        {state.currentPhase === Phase.VISUAL && (
+          <EyeVisualization
+            key="eye"
+            mouseX={mousePosition.x}
+            mouseY={mousePosition.y}
+          />
+        )}
+
+        {state.currentPhase === Phase.PSYCHOMETRIC && (
+          <OrbitVisualization key="orbit" rotationSpeed={typingSpeed} />
+        )}
+
+        {state.currentPhase === Phase.BIOMETRIC && (
+          <HelixVisualization key="helix" isGlowing={false} />
+        )}
+
+        {state.isFusionActive && (
+          <FusionVisualization key="fusion" />
+        )}
+
+        {state.currentPhase === Phase.RESULTS && (
+          <ParticleSwarm key="results-particles" />
+        )}
+      </AnimatePresence>
+
+      {/* Ambient gradient overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: `
+            radial-gradient(ellipse at 30% 20%, rgba(212, 168, 83, 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse at 70% 80%, rgba(114, 47, 55, 0.06) 0%, transparent 50%)
+          `,
+          pointerEvents: 'none',
+        }}
+      />
+    </div>
+  );
+}
+
+export default LivingBackground;

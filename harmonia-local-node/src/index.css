@@ -1,0 +1,392 @@
+/* ============================================
+   HARMONIA LOCAL NODE - PARALLAX FORENSIC LAB
+   Void & Gold Design System
+   ============================================ */
+
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ============================================
+   CSS VARIABLES - VOID & GOLD PALETTE
+   ============================================ */
+:root {
+  /* Void Colors - The Engine Room */
+  --void-black: #12090A;
+  --dark-bg: #12090A;
+  --dark-surface: #2D1A1C;
+  --dark-border: #3D2426;
+
+  /* Gold Accent System */
+  --gold: #F0C86E;
+  --gold-pure: #D4A853;
+  --gold-champagne: #F5D98A;
+  --gold-light: rgba(240, 200, 110, 0.2);
+  --gold-glow: rgba(212, 168, 83, 0.4);
+
+  /* Deep Maroon - Biological Root */
+  --maroon: #722F37;
+  --maroon-deep: #5C1A1B;
+  --maroon-light: rgba(114, 47, 55, 0.12);
+  --wine: #8B3A3A;
+
+  /* Typography Colors */
+  --text-primary: #F5D98A;
+  --text-secondary: #C4B8B0;
+  --text-muted: rgba(245, 217, 138, 0.6);
+
+  /* Functional Colors */
+  --success: #4CAF50;
+  --warning: #FF9800;
+  --error: #F44336;
+
+  /* Animation Timing */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 4rem;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+/* ============================================
+   RESET & BASE STYLES
+   ============================================ */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--void-black);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  color: var(--gold-champagne);
+  line-height: 1.2;
+}
+
+h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
+h2 { font-size: clamp(2rem, 4vw, 3rem); }
+h3 { font-size: clamp(1.5rem, 3vw, 2rem); }
+h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+
+p {
+  font-family: 'DM Sans', sans-serif;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ============================================
+   GOLD FOIL TEXT EFFECT
+   ============================================ */
+.gold-foil-text {
+  background: linear-gradient(
+    135deg,
+    var(--gold) 0%,
+    var(--gold-champagne) 25%,
+    #FFF8E1 50%,
+    var(--gold-champagne) 75%,
+    var(--gold) 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldShimmer 3s ease-in-out infinite;
+}
+
+@keyframes goldShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ============================================
+   ELECTRIC PULSE ANIMATION
+   ============================================ */
+@keyframes electricPulse {
+  0% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(212, 168, 83, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0); }
+}
+
+.pulse-gold {
+  animation: electricPulse 2s ease-out infinite;
+}
+
+/* ============================================
+   GLASSMORPHISM - THE LIVING MONOLITH
+   ============================================ */
+.glass-monolith {
+  background: rgba(45, 26, 28, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(212, 168, 83, 0.25);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(212, 168, 83, 0.1),
+    inset 0 0 60px rgba(212, 168, 83, 0.05);
+}
+
+.glass-monolith-light {
+  background: rgba(45, 26, 28, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 168, 83, 0.15);
+  border-radius: var(--radius-md);
+}
+
+/* ============================================
+   SCROLL-SNAP CONTAINER
+   ============================================ */
+.scroll-snap-container {
+  height: 100vh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-snap-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scroll-snap-container::-webkit-scrollbar-track {
+  background: var(--dark-surface);
+}
+
+.scroll-snap-container::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: var(--radius-full);
+}
+
+/* ============================================
+   STATION STYLES
+   ============================================ */
+.station {
+  height: 100vh;
+  width: 100vw;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.station-content {
+  position: relative;
+  z-index: 10;
+  max-width: 800px;
+  width: 90%;
+  padding: var(--spacing-xl);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: 1rem 2rem;
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s var(--ease-smooth);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold), var(--gold-champagne));
+  color: var(--maroon-deep);
+  box-shadow: 0 4px 20px rgba(212, 168, 83, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(212, 168, 83, 0.5);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--gold);
+  border: 2px solid var(--gold);
+}
+
+.btn-secondary:hover {
+  background: var(--gold);
+  color: var(--dark-bg);
+}
+
+/* ============================================
+   FORM ELEMENTS - FELIX TERMINAL STYLE
+   ============================================ */
+.felix-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--gold);
+  color: var(--gold-champagne);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  caret-color: var(--gold);
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.felix-input:focus {
+  border-bottom-color: var(--gold-champagne);
+}
+
+.felix-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ============================================
+   UPLOAD ZONE
+   ============================================ */
+.upload-zone {
+  border: 2px dashed rgba(212, 168, 83, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-smooth);
+}
+
+.upload-zone:hover,
+.upload-zone.drag-active {
+  border-color: var(--gold);
+  background: rgba(212, 168, 83, 0.05);
+}
+
+.upload-zone.drag-active {
+  transform: scale(1.02);
+  box-shadow: 0 0 40px rgba(212, 168, 83, 0.2);
+}
+
+/* ============================================
+   PROGRESS & LOADING
+   ============================================ */
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--dark-surface);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--maroon), var(--gold));
+  border-radius: var(--radius-full);
+  transition: width 0.5s var(--ease-smooth);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.fade-in {
+  animation: fadeIn 0.6s var(--ease-smooth) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scale-in {
+  animation: scaleIn 0.5s var(--ease-bounce) forwards;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Hide scrollbar but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Center content */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Glow effects */
+.glow-gold {
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.3);
+}
+
+.glow-maroon {
+  box-shadow: 0 0 20px rgba(114, 47, 55, 0.3);
+}
+
+/* Text utilities */
+.text-gold { color: var(--gold); }
+.text-champagne { color: var(--gold-champagne); }
+.text-maroon { color: var(--maroon); }
+.text-center { text-align: center; }
+.text-uppercase { text-transform: uppercase; letter-spacing: 0.15em; }
+
+/* Spacing utilities */
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }

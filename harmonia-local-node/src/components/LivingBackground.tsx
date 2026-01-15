@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Particles, { initParticlesEngine } from '@tsparticles/react';
 import { loadSlim } from '@tsparticles/slim';
 import { useApp, Phase } from '../context/AppContext';
+import { Logo } from './Logo';
 
 // Lazy load 3D Helix for performance
 const DNAHelix3D = lazy(() => import('./3D/DNAHelix3D'));
@@ -149,54 +150,53 @@ function ParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '200px',
-            height: '200px',
+            width: '220px',
+            height: '220px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             pointerEvents: 'none',
           }}
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: [0.3, 0.6, 0.3], scale: 1 }}
-          transition={{ opacity: { duration: 3, repeat: Infinity }, scale: { duration: 1 } }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: 'easeOut' }}
         >
-          <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-            <defs>
-              <filter id="logoGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            {/* H logo outline with glow */}
-            <text
-              x="50"
-              y="65"
-              textAnchor="middle"
-              fontFamily="'Cormorant Garamond', serif"
-              fontSize="60"
-              fontWeight="700"
-              fill="none"
-              stroke="#D4A853"
-              strokeWidth="1"
-              filter="url(#logoGlow)"
-              opacity="0.6"
-            >
-              H
-            </text>
-            {/* Circular frame */}
-            <circle
-              cx="50"
-              cy="50"
-              r="45"
-              fill="none"
-              stroke="#D4A853"
-              strokeWidth="0.5"
-              opacity="0.4"
-            />
-          </svg>
+          {/* Glowing ring around logo */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              border: '2px solid rgba(212, 168, 83, 0.3)',
+              boxShadow: '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
+            }}
+            animate={{
+              boxShadow: [
+                '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
+                '0 0 60px rgba(212, 168, 83, 0.4), inset 0 0 60px rgba(212, 168, 83, 0.2)',
+                '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
+              ],
+              scale: [1, 1.02, 1],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Logo with pulse effect */}
+          <Logo size={160} animated={true} />
+
+          {/* Particle trail effect around logo */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              border: '1px dashed rgba(212, 168, 83, 0.3)',
+            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          />
         </motion.div>
       )}
     </motion.div>

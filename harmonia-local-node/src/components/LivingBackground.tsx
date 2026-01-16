@@ -19,9 +19,10 @@ import { useApp, Phase } from '../context/AppContext';
 import { Logo } from './Logo';
 import { OrganicBackground, ShaderPhase } from './WebGL/OrganicBackground';
 
-// Lazy load 3D components for performance
+// Lazy load 3D/WebGL components for performance
 const DNAHelix3D = lazy(() => import('./3D/DNAHelix3D'));
 const CelticKnotLogo = lazy(() => import('./WebGL/CelticKnotLogo'));
+const ShaderEye = lazy(() => import('./WebGL/ShaderEye'));
 
 // Styles
 const styles = {
@@ -1359,11 +1360,29 @@ export function LivingBackground() {
         )}
 
         {state.currentPhase === Phase.VISUAL && (
-          <EyeVisualization
+          <motion.div
             key="eye"
-            mouseX={mousePosition.x}
-            mouseY={mousePosition.y}
-          />
+            style={styles.layer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            {/* WebGL Shader Eye - Session 5 overhaul */}
+            <Suspense fallback={<EyeVisualization mouseX={mousePosition.x} mouseY={mousePosition.y} />}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%',
+                }}
+              >
+                <ShaderEye size={Math.min(window.innerWidth * 0.5, 500)} />
+              </div>
+            </Suspense>
+          </motion.div>
         )}
 
         {state.currentPhase === Phase.PSYCHOMETRIC && (

@@ -564,11 +564,130 @@ function SimpleParticleSwarm() {
 }
 
 // ============================================
-// EYE SVG LAYER (Phase 1: Visual)
+// ADVANCED EYE VISUALIZATION (Session 2 Enhanced)
+// Features: Multi-layer Parallax, Pupil Dilation, Blink Animation,
+// Procedural Iris, Micro-animations, Smooth Cursor Tracking
 // ============================================
 function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mouseY?: number }) {
-  const pupilOffsetX = (mouseX - 0.5) * 20;
-  const pupilOffsetY = (mouseY - 0.5) * 20;
+  const [isDragging, setIsDragging] = useState(false);
+  const [isBlinking, setIsBlinking] = useState(false);
+  const [microTremor, setMicroTremor] = useState({ x: 0, y: 0 });
+  const [smoothMouse, setSmoothMouse] = useState({ x: 0.5, y: 0.5 });
+
+  // Smooth mouse tracking with easing
+  useEffect(() => {
+    const ease = 0.08;
+    const animate = () => {
+      setSmoothMouse(prev => ({
+        x: prev.x + (mouseX - prev.x) * ease,
+        y: prev.y + (mouseY - prev.y) * ease,
+      }));
+    };
+    const interval = setInterval(animate, 16);
+    return () => clearInterval(interval);
+  }, [mouseX, mouseY]);
+
+  // Micro-tremor for organic feel
+  useEffect(() => {
+    const tremor = () => {
+      setMicroTremor({
+        x: (Math.random() - 0.5) * 0.5,
+        y: (Math.random() - 0.5) * 0.5,
+      });
+    };
+    const interval = setInterval(tremor, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Listen for file drag events for pupil dilation
+  useEffect(() => {
+    const handleDragStart = () => setIsDragging(true);
+    const handleDragEnd = () => setIsDragging(false);
+
+    window.addEventListener('file-drag', ((e: CustomEvent) => {
+      setIsDragging(e.detail?.isDragging || false);
+    }) as EventListener);
+
+    window.addEventListener('dragenter', handleDragStart);
+    window.addEventListener('dragleave', handleDragEnd);
+    window.addEventListener('drop', handleDragEnd);
+
+    return () => {
+      window.removeEventListener('dragenter', handleDragStart);
+      window.removeEventListener('dragleave', handleDragEnd);
+      window.removeEventListener('drop', handleDragEnd);
+    };
+  }, []);
+
+  // Random blink animation
+  useEffect(() => {
+    const scheduleBlink = () => {
+      const nextBlink = 3000 + Math.random() * 5000;
+      return setTimeout(() => {
+        setIsBlinking(true);
+        setTimeout(() => setIsBlinking(false), 150);
+        scheduleBlink();
+      }, nextBlink);
+    };
+    const timeout = scheduleBlink();
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Handle click for manual blink
+  const handleClick = () => {
+    setIsBlinking(true);
+    setTimeout(() => setIsBlinking(false), 150);
+  };
+
+  // Multi-layer parallax calculations
+  const basePupilOffset = {
+    x: (smoothMouse.x - 0.5) * 25 + microTremor.x,
+    y: (smoothMouse.y - 0.5) * 25 + microTremor.y,
+  };
+
+  // Different parallax rates for each layer
+  const irisOffset = {
+    x: basePupilOffset.x * 0.6,
+    y: basePupilOffset.y * 0.6,
+  };
+
+  const reflectionOffset = {
+    x: -basePupilOffset.x * 0.3,
+    y: -basePupilOffset.y * 0.3,
+  };
+
+  const highlightOffset = {
+    x: basePupilOffset.x * 0.8,
+    y: basePupilOffset.y * 0.8,
+  };
+
+  // Pupil size based on dilation state
+  const pupilRadius = isDragging ? 22 : 15;
+  const irisRadius = isDragging ? 42 : 35;
+
+  // Eyelid animation
+  const upperLidY = isBlinking ? 100 : 40;
+  const lowerLidY = isBlinking ? 100 : 160;
+
+  // Generate iris fiber pattern paths
+  const irisFibers = useMemo(() => {
+    const fibers = [];
+    const fiberCount = 24;
+    for (let i = 0; i < fiberCount; i++) {
+      const angle = (i / fiberCount) * Math.PI * 2;
+      const innerRadius = 18;
+      const outerRadius = 33 + Math.random() * 4;
+      const wobble = Math.sin(i * 3) * 2;
+      fibers.push({
+        x1: 100 + Math.cos(angle) * innerRadius,
+        y1: 100 + Math.sin(angle) * innerRadius,
+        x2: 100 + Math.cos(angle + wobble * 0.05) * outerRadius,
+        y2: 100 + Math.sin(angle + wobble * 0.05) * outerRadius,
+        opacity: 0.3 + Math.random() * 0.4,
+      });
+    }
+    return fibers;
+  }, []);
 
   return (
     <motion.div
@@ -577,113 +696,356 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.8, ease: 'easeInOut' }}
+      onClick={handleClick}
     >
       <motion.svg
         viewBox="0 0 200 200"
-        style={styles.svgContainer}
+        style={{ ...styles.svgContainer, cursor: 'pointer' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
       >
         <defs>
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          {/* Enhanced glow filter */}
+          <filter id="eyeGlow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="4" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          <radialGradient id="eyeGradient" cx="50%" cy="50%" r="50%">
+
+          {/* Inner glow for iris */}
+          <filter id="irisGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          {/* Radial gradient for background */}
+          <radialGradient id="eyeBgGradient" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#D4A853" stopOpacity="0.3" />
             <stop offset="100%" stopColor="#722F37" stopOpacity="0.1" />
           </radialGradient>
+
+          {/* Iris gradient with depth */}
+          <radialGradient id="irisGradient" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#5C1A1B" />
+            <stop offset="40%" stopColor="#722F37" />
+            <stop offset="80%" stopColor="#8B3A3A" />
+            <stop offset="100%" stopColor="#D4A853" stopOpacity="0.5" />
+          </radialGradient>
+
+          {/* Pupil gradient for depth */}
+          <radialGradient id="pupilGradient" cx="40%" cy="40%" r="50%">
+            <stop offset="0%" stopColor="#2D1A1C" />
+            <stop offset="100%" stopColor="#12090A" />
+          </radialGradient>
+
+          {/* Golden ring glow */}
+          <filter id="goldGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feFlood floodColor="#D4A853" floodOpacity="0.6" />
+            <feComposite in2="blur" operator="in" />
+            <feMerge>
+              <feMergeNode />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
-        <circle cx="100" cy="100" r="90" fill="url(#eyeGradient)" />
+        {/* Background ambient circle */}
+        <circle cx="100" cy="100" r="95" fill="url(#eyeBgGradient)" />
 
+        {/* Outer decorative ring */}
         <motion.circle
           cx="100"
           cy="100"
-          r="85"
+          r="90"
           stroke="#D4A853"
-          strokeWidth="1"
+          strokeWidth="0.5"
           fill="none"
-          opacity="0.5"
+          opacity="0.3"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
           transition={{ duration: 2, ease: 'easeInOut' }}
         />
 
-        <motion.rect
-          x="30"
-          y="30"
-          width="140"
-          height="140"
-          stroke="#D4A853"
-          strokeWidth="0.5"
-          fill="none"
-          style={{ transform: 'rotate(45deg)', transformOrigin: 'center' }}
-          opacity="0.3"
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 0.3 }}
-          transition={{ duration: 1.5, delay: 0.5 }}
+        {/* Rotating diamond frame */}
+        <motion.g
+          style={{ transformOrigin: '100px 100px' }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+        >
+          <rect
+            x="30"
+            y="30"
+            width="140"
+            height="140"
+            stroke="#D4A853"
+            strokeWidth="0.5"
+            fill="none"
+            opacity="0.2"
+            transform="rotate(45 100 100)"
+          />
+        </motion.g>
+
+        {/* Sclera (white of eye) - subtle */}
+        <ellipse
+          cx="100"
+          cy="100"
+          rx="70"
+          ry="45"
+          fill="rgba(45, 26, 28, 0.3)"
         />
 
+        {/* Upper eyelid with blink animation */}
         <motion.path
-          d="M30 100 Q100 40 170 100"
           stroke="#D4A853"
-          strokeWidth="2"
-          fill="none"
-          filter="url(#glow)"
-          initial={{ d: 'M30 100 Q100 100 170 100' }}
-          animate={{ d: 'M30 100 Q100 40 170 100' }}
-          transition={{ duration: 1, ease: 'easeOut' }}
+          strokeWidth="2.5"
+          fill="rgba(18, 9, 10, 0.9)"
+          filter="url(#eyeGlow)"
+          animate={{
+            d: `M20 100 Q100 ${upperLidY} 180 100 L180 0 L20 0 Z`,
+          }}
+          transition={{ duration: 0.1, ease: 'easeInOut' }}
         />
 
+        {/* Lower eyelid with blink animation */}
         <motion.path
-          d="M30 100 Q100 160 170 100"
           stroke="#D4A853"
-          strokeWidth="2"
-          fill="none"
-          filter="url(#glow)"
-          initial={{ d: 'M30 100 Q100 100 170 100' }}
-          animate={{ d: 'M30 100 Q100 160 170 100' }}
-          transition={{ duration: 1, ease: 'easeOut' }}
+          strokeWidth="2.5"
+          fill="rgba(18, 9, 10, 0.9)"
+          filter="url(#eyeGlow)"
+          animate={{
+            d: `M20 100 Q100 ${lowerLidY} 180 100 L180 200 L20 200 Z`,
+          }}
+          transition={{ duration: 0.1, ease: 'easeInOut' }}
         />
 
+        {/* Iris - moves with parallax */}
+        <motion.g
+          animate={{
+            x: irisOffset.x,
+            y: irisOffset.y,
+          }}
+          transition={{ type: 'spring', stiffness: 150, damping: 15 }}
+        >
+          {/* Iris base */}
+          <motion.circle
+            cx="100"
+            cy="100"
+            r={irisRadius}
+            fill="url(#irisGradient)"
+            stroke="#D4A853"
+            strokeWidth="1"
+            filter="url(#irisGlow)"
+            animate={{ r: irisRadius }}
+            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+          />
+
+          {/* Iris fiber pattern */}
+          <g opacity="0.6">
+            {irisFibers.map((fiber, i) => (
+              <line
+                key={i}
+                x1={fiber.x1}
+                y1={fiber.y1}
+                x2={fiber.x2}
+                y2={fiber.y2}
+                stroke="#D4A853"
+                strokeWidth="0.5"
+                opacity={fiber.opacity}
+              />
+            ))}
+          </g>
+
+          {/* Inner iris ring */}
+          <circle
+            cx="100"
+            cy="100"
+            r={irisRadius * 0.7}
+            stroke="#C4956A"
+            strokeWidth="0.5"
+            fill="none"
+            opacity="0.4"
+          />
+
+          {/* Outer iris glow ring */}
+          <motion.circle
+            cx="100"
+            cy="100"
+            r={irisRadius + 2}
+            stroke="#D4A853"
+            strokeWidth="1"
+            fill="none"
+            opacity="0.3"
+            animate={{
+              opacity: [0.2, 0.4, 0.2],
+              r: [irisRadius + 2, irisRadius + 4, irisRadius + 2],
+            }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.g>
+
+        {/* Pupil - moves with stronger parallax */}
+        <motion.g
+          animate={{
+            x: basePupilOffset.x,
+            y: basePupilOffset.y,
+          }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+        >
+          {/* Pupil with dilation */}
+          <motion.circle
+            cx="100"
+            cy="100"
+            r={pupilRadius}
+            fill="url(#pupilGradient)"
+            animate={{ r: pupilRadius }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          />
+
+          {/* Pupil inner depth */}
+          <motion.circle
+            cx="100"
+            cy="100"
+            r={pupilRadius * 0.6}
+            fill="#12090A"
+            animate={{ r: pupilRadius * 0.6 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          />
+        </motion.g>
+
+        {/* Reflection highlight - moves opposite to pupil */}
+        <motion.g
+          animate={{
+            x: reflectionOffset.x,
+            y: reflectionOffset.y,
+          }}
+          transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+        >
+          {/* Main reflection */}
+          <motion.circle
+            cx="92"
+            cy="92"
+            r="6"
+            fill="#D4A853"
+            opacity="0.7"
+            filter="url(#goldGlow)"
+            animate={{
+              opacity: [0.5, 0.8, 0.5],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Secondary small reflection */}
+          <circle
+            cx="108"
+            cy="105"
+            r="2"
+            fill="#F5D98A"
+            opacity="0.5"
+          />
+        </motion.g>
+
+        {/* Highlight sparkle - moves with pupil */}
+        <motion.g
+          animate={{
+            x: highlightOffset.x,
+            y: highlightOffset.y,
+          }}
+          transition={{ type: 'spring', stiffness: 150, damping: 15 }}
+        >
+          <motion.circle
+            cx="95"
+            cy="95"
+            r="3"
+            fill="white"
+            opacity="0.8"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.6, 0.9, 0.6],
+            }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.g>
+
+        {/* Ambient pulsing glow around eye */}
         <motion.circle
           cx="100"
           cy="100"
-          r="35"
-          stroke="#722F37"
-          strokeWidth="1"
-          fill="rgba(114, 47, 55, 0.2)"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
+          r="85"
+          stroke="#D4A853"
+          strokeWidth="2"
+          fill="none"
+          opacity="0.2"
+          filter="url(#eyeGlow)"
+          animate={{
+            opacity: [0.1, 0.3, 0.1],
+            r: [85, 88, 85],
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         />
 
-        <motion.circle
-          cx={100 + pupilOffsetX}
-          cy={100 + pupilOffsetY}
-          r="15"
-          fill="#722F37"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.8 }}
-        />
-
-        <motion.circle
-          cx={95 + pupilOffsetX}
-          cy={95 + pupilOffsetY}
-          r="5"
-          fill="#D4A853"
-          opacity="0.6"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.3, delay: 1 }}
-        />
+        {/* Dilation indicator glow when dragging */}
+        {isDragging && (
+          <motion.circle
+            cx="100"
+            cy="100"
+            r="50"
+            stroke="#D4A853"
+            strokeWidth="3"
+            fill="none"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{
+              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+            filter="url(#goldGlow)"
+          />
+        )}
       </motion.svg>
+
+      {/* Ambient particles around eye */}
+      <motion.div
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+        }}
+      >
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            style={{
+              position: 'absolute',
+              width: '4px',
+              height: '4px',
+              borderRadius: '50%',
+              background: '#D4A853',
+              left: `${30 + Math.random() * 40}%`,
+              top: `${30 + Math.random() * 40}%`,
+            }}
+            animate={{
+              x: [0, (Math.random() - 0.5) * 20, 0],
+              y: [0, (Math.random() - 0.5) * 20, 0],
+              opacity: [0.2, 0.5, 0.2],
+              scale: [0.8, 1.2, 0.8],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 2,
+              repeat: Infinity,
+              delay: i * 0.5,
+              ease: 'easeInOut',
+            }}
+          />
+        ))}
+      </motion.div>
     </motion.div>
   );
 }

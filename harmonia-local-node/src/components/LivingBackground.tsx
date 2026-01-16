@@ -20,10 +20,10 @@ import { Logo } from './Logo';
 import { OrganicBackground, ShaderPhase } from './WebGL/OrganicBackground';
 
 // Lazy load 3D/WebGL components for performance
-const DNAHelix3D = lazy(() => import('./3D/DNAHelix3D'));
 const CelticKnotLogo = lazy(() => import('./WebGL/CelticKnotLogo'));
 const ShaderEye = lazy(() => import('./WebGL/ShaderEye'));
 const NeuralNetwork = lazy(() => import('./WebGL/NeuralNetwork'));
+const ShaderHelix = lazy(() => import('./WebGL/ShaderHelix'));
 
 // Styles
 const styles = {
@@ -1163,7 +1163,7 @@ function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
 }
 
 // ============================================
-// HELIX LAYER (Phase 3: Biometric) - 3D Enhanced
+// HELIX LAYER (Phase 3: Biometric) - Session 7 WebGL Shader Enhanced
 // ============================================
 function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -1185,8 +1185,22 @@ function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.8 }}
       >
+        {/* ShaderHelix - Session 7 WebGL organic shader helix */}
         <Suspense fallback={<HelixSVGFallback isGlowing={isGlowing} />}>
-          <DNAHelix3D isGlowing={isGlowing} />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            <ShaderHelix
+              size={Math.min(window.innerHeight * 0.7, 500)}
+              isGlowing={isGlowing}
+            />
+          </div>
         </Suspense>
       </motion.div>
     );

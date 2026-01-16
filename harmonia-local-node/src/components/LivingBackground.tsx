@@ -1,12 +1,10 @@
 /**
- * LivingBackground - Session 28: Unified Reactive Background
+ * LivingBackground - Session 28 Fix: Proper Logo Click Flow
  *
- * Features:
- * - ONE unified OrganicBackground (phase-reactive, always visible)
- * - GlobalReactiveField overlay (reacts to all activity)
- * - Phase-specific main elements (logo, eye, quiz overlay, helix, etc.)
- * - Fixed logo click functionality
- * - Proper centering and layering
+ * Flow:
+ * 1. Initially: CelticKnotLogo centered (splash screen)
+ * 2. Click logo → Reveals IntroStation content (intro opens)
+ * 3. IntroStation button → Visual phase
  */
 
 import { useEffect, useCallback, useState, Suspense, lazy } from 'react';
@@ -24,7 +22,7 @@ const FusionVortex = lazy(() => import('./WebGL/FusionVortex'));
 const CelebrationBurst = lazy(() => import('./WebGL/CelebrationBurst'));
 const GlobalReactiveField = lazy(() => import('./WebGL/GlobalReactiveField'));
 
-// Quiz-Reactive Components (Session 16-20)
+// Quiz-Reactive Components
 const ReactiveNeuralNetwork = lazy(() => import('./WebGL/ReactiveNeuralNetwork'));
 const QuantumOrbit = lazy(() => import('./WebGL/QuantumOrbit'));
 const ThoughtStream = lazy(() => import('./WebGL/ThoughtStream'));
@@ -51,13 +49,20 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clickHint: {
+  logoContainer: {
     position: 'absolute' as const,
-    bottom: '25%',
+    top: '50%',
     left: '50%',
-    transform: 'translateX(-50%)',
+    transform: 'translate(-50%, -50%)',
+    zIndex: 10,
+    cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '2rem',
+  },
+  clickHint: {
     textAlign: 'center' as const,
-    zIndex: 15,
     pointerEvents: 'none' as const,
   },
   hintText: {
@@ -67,20 +72,12 @@ const styles = {
     letterSpacing: '0.15em',
     textTransform: 'uppercase' as const,
   },
-  hintSubtext: {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: '1.1rem',
-    ...TextLayer.SECONDARY,
-    marginTop: '0.5rem',
-  },
 };
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
 export function LivingBackground() {
-  const { state, completeStation, goToPhase } = useApp();
-  const [logoSize, setLogoSize] = useState(350);
+  const { state } = useApp();
+  const [logoSize, setLogoSize] = useState(300);
+  const [introRevealed, setIntroRevealed] = useState(false);
 
   // Global activity tracking
   const globalActivity = useGlobalActivity(state.currentPhase);
@@ -88,18 +85,20 @@ export function LivingBackground() {
   // Calculate logo size based on viewport
   useEffect(() => {
     const updateSize = () => {
-      setLogoSize(Math.min(window.innerWidth * 0.4, window.innerHeight * 0.4, 350));
+      const size = Math.min(window.innerWidth * 0.35, window.innerHeight * 0.35, 300);
+      setLogoSize(size);
     };
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // Handler for clicking the intro logo
-  const handleIntroComplete = useCallback(() => {
-    completeStation(Phase.INTRO);
-    goToPhase(Phase.VISUAL);
-  }, [completeStation, goToPhase]);
+  // Handler for clicking the logo - reveals intro content
+  const handleLogoClick = useCallback(() => {
+    setIntroRevealed(true);
+    // Dispatch event for IntroStation to know intro is revealed
+    window.dispatchEvent(new CustomEvent('intro-revealed'));
+  }, []);
 
   // Map Phase to ShaderPhase
   const shaderPhase = (() => {
@@ -114,15 +113,22 @@ export function LivingBackground() {
     return phaseMap[state.currentPhase] ?? ShaderPhase.INTRO;
   })();
 
+  // Reset introRevealed when returning to INTRO phase
+  useEffect(() => {
+    if (state.currentPhase !== Phase.INTRO) {
+      setIntroRevealed(false);
+    }
+  }, [state.currentPhase]);
+
   return (
     <div style={styles.container}>
-      {/* BASE LAYER: OrganicBackground - Always visible, phase-reactive */}
+      {/* BASE LAYER: OrganicBackground */}
       <OrganicBackground
         phase={state.isFusionActive ? ShaderPhase.FUSION : shaderPhase}
         intensity={1.0}
       />
 
-      {/* REACTIVE OVERLAY: GlobalReactiveField - Always visible, responds to all activity */}
+      {/* REACTIVE OVERLAY: GlobalReactiveField */}
       <Suspense fallback={null}>
         <GlobalReactiveField
           activityLevel={globalActivity.activityLevel}
@@ -135,54 +141,43 @@ export function LivingBackground() {
 
       {/* PHASE-SPECIFIC ELEMENTS */}
       <AnimatePresence mode="wait">
-        {/* INTRO PHASE: Celtic Knot Logo (clickable) */}
-        {state.currentPhase === Phase.INTRO && (
+        {/* INTRO PHASE: Logo (before reveal) */}
+        {state.currentPhase === Phase.INTRO && !introRevealed && (
           <motion.div
-            key="intro"
+            key="intro-logo"
             style={styles.layer}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.8 }}
           >
-            {/* Celtic Knot Logo - THE ONLY clickable logo */}
             <Suspense fallback={null}>
               <motion.div
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 10,
-                  cursor: 'pointer',
-                }}
-                initial={{ scale: 0.8, opacity: 0 }}
+                style={styles.logoContainer}
+                initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
               >
                 <CelticKnotLogo
                   size={logoSize}
-                  onClick={handleIntroComplete}
+                  onClick={handleLogoClick}
                 />
+                <motion.div
+                  style={styles.clickHint}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.5, duration: 0.8 }}
+                >
+                  <motion.p
+                    style={styles.hintText}
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    Click to Enter
+                  </motion.p>
+                </motion.div>
               </motion.div>
             </Suspense>
-
-            {/* Click hint text */}
-            <motion.div
-              style={styles.clickHint}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.5, duration: 0.8 }}
-            >
-              <motion.p
-                style={styles.hintText}
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                Click to Begin
-              </motion.p>
-              <p style={styles.hintSubtext}>Initialize Analysis Protocol</p>
-            </motion.div>
           </motion.div>
         )}
 
@@ -197,7 +192,7 @@ export function LivingBackground() {
             transition={{ duration: 0.8 }}
           >
             <Suspense fallback={null}>
-              <ShaderEye size={Math.min(window.innerWidth * 0.5, 500)} />
+              <ShaderEye size={Math.min(window.innerWidth * 0.45, 450)} />
             </Suspense>
           </motion.div>
         )}
@@ -212,28 +207,21 @@ export function LivingBackground() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
           >
-            {/* PulseField - Ambient grid */}
             <Suspense fallback={null}>
-              <div style={{ position: 'absolute', inset: 0, opacity: 0.4, zIndex: 1 }}>
+              <div style={{ position: 'absolute', inset: 0, opacity: 0.3, zIndex: 1 }}>
                 <PulseField />
               </div>
             </Suspense>
-
-            {/* ThoughtStream - Consciousness flow */}
             <Suspense fallback={null}>
-              <div style={{ position: 'absolute', inset: 0, opacity: 0.5, zIndex: 2 }}>
+              <div style={{ position: 'absolute', inset: 0, opacity: 0.4, zIndex: 2 }}>
                 <ThoughtStream />
               </div>
             </Suspense>
-
-            {/* ReactiveNeuralNetwork - Quiz-reactive neurons */}
             <Suspense fallback={null}>
-              <div style={{ position: 'absolute', inset: 0, opacity: 0.7, zIndex: 3 }}>
+              <div style={{ position: 'absolute', inset: 0, opacity: 0.5, zIndex: 3 }}>
                 <ReactiveNeuralNetwork />
               </div>
             </Suspense>
-
-            {/* QuantumOrbit - Particle rings */}
             <Suspense fallback={null}>
               <div
                 style={{
@@ -241,10 +229,10 @@ export function LivingBackground() {
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: '40%',
-                  height: '40%',
-                  maxWidth: '400px',
-                  maxHeight: '400px',
+                  width: '35%',
+                  height: '35%',
+                  maxWidth: '350px',
+                  maxHeight: '350px',
                   zIndex: 4,
                   pointerEvents: 'none',
                 }}
@@ -267,7 +255,7 @@ export function LivingBackground() {
           >
             <Suspense fallback={null}>
               <ShaderHelix
-                size={Math.min(window.innerHeight * 0.7, 500)}
+                size={Math.min(window.innerHeight * 0.6, 450)}
                 isGlowing={false}
               />
             </Suspense>
@@ -280,7 +268,7 @@ export function LivingBackground() {
             key="fusion"
             style={{
               ...styles.layer,
-              background: 'radial-gradient(circle, rgba(212,168,83,0.2) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(212,168,83,0.15) 0%, transparent 60%)',
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -289,7 +277,7 @@ export function LivingBackground() {
           >
             <Suspense fallback={null}>
               <FusionVortex
-                size={Math.min(window.innerWidth, window.innerHeight) * 0.8}
+                size={Math.min(window.innerWidth, window.innerHeight) * 0.7}
                 autoProgress={true}
                 duration={4}
               />
@@ -318,9 +306,9 @@ export function LivingBackground() {
                 }}
               >
                 <CelebrationBurst
-                  size={Math.min(window.innerWidth, window.innerHeight) * 0.8}
+                  size={Math.min(window.innerWidth, window.innerHeight) * 0.7}
                   autoTrigger={true}
-                  burstCount={4}
+                  burstCount={3}
                 />
               </div>
             </Suspense>
@@ -337,8 +325,8 @@ export function LivingBackground() {
           width: '100%',
           height: '100%',
           background: `
-            radial-gradient(ellipse at 30% 20%, rgba(212, 168, 83, 0.06) 0%, transparent 50%),
-            radial-gradient(ellipse at 70% 80%, rgba(114, 47, 55, 0.04) 0%, transparent 50%)
+            radial-gradient(ellipse at 30% 20%, rgba(212, 168, 83, 0.05) 0%, transparent 50%),
+            radial-gradient(ellipse at 70% 80%, rgba(114, 47, 55, 0.03) 0%, transparent 50%)
           `,
           pointerEvents: 'none',
           zIndex: 100,

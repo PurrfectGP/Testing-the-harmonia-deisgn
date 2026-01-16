@@ -1,11 +1,16 @@
 /**
- * IntroStation - Phase 0: The Magnetizing Swarm
+ * IntroStation - Session 27: Seamless Design
+ * Phase 0: The Magnetizing Swarm
  * Welcome screen with particle animation intro
  */
 
 import { motion } from 'framer-motion';
 import { useApp, Phase } from '../../context/AppContext';
 import { Logo } from '../Logo';
+import {
+  TextLayer,
+  SeamlessButton,
+} from '../../styles/seamlessStyles';
 
 const styles = {
   container: {
@@ -13,6 +18,8 @@ const styles = {
     maxWidth: '600px',
     padding: '3rem 2rem',
     textAlign: 'center' as const,
+    background: 'transparent',
+    border: 'none',
   },
   logoContainer: {
     width: '100px',
@@ -20,37 +27,31 @@ const styles = {
     margin: '0 auto 2rem',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, var(--maroon), var(--maroon-deep))',
-    border: '2px solid var(--gold)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 0 40px rgba(212, 168, 83, 0.3)',
+    boxShadow: '0 0 40px rgba(212, 168, 83, 0.3), 0 0 80px rgba(212, 168, 83, 0.15)',
     overflow: 'hidden',
-  },
-  logoImage: {
-    width: '80px',
-    height: '80px',
-    objectFit: 'contain' as const,
-    filter: 'drop-shadow(0 0 10px rgba(212, 168, 83, 0.5))',
   },
   title: {
     fontFamily: "'Cormorant Garamond', serif",
     fontSize: 'clamp(2rem, 5vw, 3rem)',
     fontWeight: 600,
-    color: 'var(--gold-champagne)',
-    marginBottom: '0.5rem',
+    ...TextLayer.PRIMARY,
+    marginBottom: '0.75rem',
+    letterSpacing: '0.02em',
     lineHeight: 1.1,
   },
   subtitle: {
     fontFamily: "'JetBrains Mono', monospace",
-    fontSize: '0.75rem',
-    color: 'var(--gold)',
+    fontSize: '0.8rem',
+    ...TextLayer.HOLOGRAPHIC,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.3em',
     marginBottom: '2rem',
   },
   description: {
-    color: 'var(--text-secondary)',
+    ...TextLayer.SECONDARY,
     fontSize: '1.1rem',
     lineHeight: 1.8,
     marginBottom: '3rem',
@@ -59,25 +60,21 @@ const styles = {
   },
   highlight: {
     color: 'var(--gold)',
+    textShadow: '0 0 15px rgba(212, 168, 83, 0.5)',
   },
   button: {
-    padding: '1.25rem 3rem',
-    background: 'linear-gradient(135deg, var(--gold), var(--gold-champagne))',
-    color: 'var(--maroon-deep)',
-    border: 'none',
-    borderRadius: '4px',
+    ...SeamlessButton.PRIMARY,
+    display: 'inline-block',
     fontSize: '1.1rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    fontFamily: "'DM Sans', sans-serif",
-    boxShadow: '0 4px 20px rgba(212, 168, 83, 0.3)',
+    padding: '1.25rem 3rem',
+    letterSpacing: '0.03em',
+    boxShadow: '0 4px 20px rgba(212, 168, 83, 0.3), 0 0 30px rgba(212, 168, 83, 0.15)',
   },
   versionTag: {
     marginTop: '3rem',
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: '0.7rem',
-    color: 'var(--text-muted)',
+    ...TextLayer.MUTED,
     letterSpacing: '0.1em',
   },
   features: {
@@ -97,11 +94,12 @@ const styles = {
     width: '40px',
     height: '40px',
     color: 'var(--gold)',
+    filter: 'drop-shadow(0 0 8px rgba(212, 168, 83, 0.5))',
   },
   featureLabel: {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: '0.7rem',
-    color: 'var(--text-muted)',
+    ...TextLayer.MUTED,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.1em',
   },
@@ -121,7 +119,6 @@ export function IntroStation() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1, delay: 0.5 }}
-      className="glass-monolith"
     >
       {/* Logo */}
       <motion.div
@@ -202,8 +199,9 @@ export function IntroStation() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2 }}
         whileHover={{
-          transform: 'translateY(-3px)',
-          boxShadow: '0 8px 30px rgba(212, 168, 83, 0.5)',
+          y: -3,
+          boxShadow: '0 8px 30px rgba(212, 168, 83, 0.5), 0 0 50px rgba(212, 168, 83, 0.25)',
+          scale: 1.02,
         }}
         whileTap={{ scale: 0.98 }}
       >

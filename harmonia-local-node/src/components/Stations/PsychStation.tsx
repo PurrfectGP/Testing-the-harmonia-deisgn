@@ -1,12 +1,25 @@
 /**
- * PsychStation - Phase 2: Psychometric Analysis
- * Contains the Felix Terminal for psychological assessment
+ * PsychStation - Session 24: Seamless Redesign
+ * Phase 2: Psychometric Analysis with borderless floating UI
+ *
+ * Features:
+ * - Transparent background (no glass-monolith)
+ * - Glowing progress orbs instead of bordered dots
+ * - Text shadows for readability over WebGL
+ * - Integrated quiz reactivity events
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp, Phase, StationState } from '../../context/AppContext';
 import FelixTerminal from './FelixTerminal';
+import {
+  TextLayer,
+  ProgressOrb,
+  SeamlessButton,
+  mergeStyles,
+} from '../../styles/seamlessStyles';
+import { emitQuestionChange } from '../../hooks/useQuizReactivity';
 
 const PROMPTS = [
   {
@@ -28,93 +41,121 @@ const styles = {
     width: '100%',
     maxWidth: '700px',
     padding: '2rem',
+    background: 'transparent',
+    border: 'none',
   },
   header: {
     textAlign: 'center' as const,
-    marginBottom: '2rem',
+    marginBottom: '2.5rem',
   },
   title: {
     fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+    fontSize: 'clamp(2rem, 5vw, 3rem)',
     fontWeight: 600,
-    color: 'var(--gold-champagne)',
-    marginBottom: '0.5rem',
+    ...TextLayer.PRIMARY,
+    marginBottom: '0.75rem',
+    letterSpacing: '0.02em',
   },
   subtitle: {
     fontFamily: "'JetBrains Mono', monospace",
-    fontSize: '0.75rem',
-    color: 'var(--text-muted)',
+    fontSize: '0.8rem',
+    ...TextLayer.HOLOGRAPHIC,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.2em',
+    letterSpacing: '0.25em',
   },
   description: {
-    color: 'var(--text-secondary)',
-    fontSize: '1rem',
-    lineHeight: 1.7,
-    marginTop: '1rem',
-    maxWidth: '600px',
-    margin: '1rem auto',
+    ...TextLayer.SECONDARY,
+    fontSize: '1.05rem',
+    lineHeight: 1.8,
+    marginTop: '1.25rem',
+    maxWidth: '550px',
+    margin: '1.25rem auto',
   },
   progress: {
     display: 'flex',
     justifyContent: 'center',
-    gap: '0.5rem',
-    marginBottom: '2rem',
+    gap: '1rem',
+    marginBottom: '2.5rem',
   },
-  progressDot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    background: 'var(--dark-surface)',
-    border: '1px solid rgba(212, 168, 83, 0.3)',
-    transition: 'all 0.3s ease',
+  progressOrb: {
+    ...ProgressOrb.BASE,
+    width: '14px',
+    height: '14px',
   },
-  progressDotActive: {
-    background: 'var(--gold)',
-    boxShadow: '0 0 10px var(--gold)',
+  progressOrbActive: {
+    ...ProgressOrb.ACTIVE,
+    animation: 'pulse-glow 2s ease-in-out infinite',
   },
-  progressDotComplete: {
-    background: 'var(--maroon)',
-    border: '1px solid var(--maroon)',
+  progressOrbComplete: {
+    ...ProgressOrb.COMPLETED,
+  },
+  progressOrbInactive: {
+    ...ProgressOrb.INACTIVE,
   },
   terminalWrapper: {
     marginTop: '1.5rem',
   },
+  completedResponsesContainer: {
+    marginBottom: '1.5rem',
+  },
   completedResponse: {
-    background: 'rgba(45, 26, 28, 0.4)',
-    border: '1px solid rgba(212, 168, 83, 0.15)',
+    background: 'rgba(18, 9, 10, 0.2)',
+    backdropFilter: 'blur(4px)',
     borderRadius: '8px',
-    padding: '1rem',
-    marginBottom: '1rem',
+    padding: '1rem 1.25rem',
+    marginBottom: '0.75rem',
+    borderLeft: '2px solid rgba(114, 47, 55, 0.5)',
   },
   responseLabel: {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: '0.7rem',
-    color: 'var(--gold)',
+    color: 'var(--maroon)',
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.1em',
+    letterSpacing: '0.15em',
     marginBottom: '0.5rem',
+    textShadow: '0 0 10px rgba(114, 47, 55, 0.5)',
   },
   responseText: {
-    color: 'var(--text-secondary)',
+    ...TextLayer.MUTED,
     fontSize: '0.9rem',
-    lineHeight: 1.5,
+    lineHeight: 1.6,
     fontStyle: 'italic' as const,
   },
-  button: {
+  completionContainer: {
+    textAlign: 'center' as const,
     marginTop: '2rem',
-    padding: '1rem 3rem',
-    background: 'linear-gradient(135deg, var(--gold), var(--gold-champagne))',
-    color: 'var(--maroon-deep)',
-    border: 'none',
-    borderRadius: '4px',
+  },
+  completionText: {
+    ...TextLayer.ACCENT,
+    fontSize: '1.1rem',
+    marginBottom: '1.5rem',
+  },
+  button: {
+    ...SeamlessButton.PRIMARY,
+    display: 'inline-block',
+    fontSize: '1.05rem',
+    padding: '1.1rem 3rem',
+    letterSpacing: '0.03em',
+  },
+  lockedContainer: {
+    width: '100%',
+    maxWidth: '700px',
+    padding: '2rem',
+    background: 'transparent',
+    opacity: 0.4,
+  },
+  lockedText: {
+    ...TextLayer.MUTED,
+    textAlign: 'center' as const,
     fontSize: '1rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    fontFamily: "'DM Sans', sans-serif",
-    display: 'block',
-    margin: '2rem auto 0',
+  },
+  checkmark: {
+    ...TextLayer.ACCENT,
+    fontSize: '1.2rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
   },
 };
 
@@ -122,9 +163,18 @@ export function PsychStation() {
   const { state, dispatch, completeStation } = useApp();
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [prevPromptIndex, setPrevPromptIndex] = useState(0);
 
   const stationState = state.stationStates[Phase.PSYCHOMETRIC];
   const currentPrompt = PROMPTS[currentPromptIndex];
+
+  // Emit question change event when prompt index changes
+  useEffect(() => {
+    if (currentPromptIndex !== prevPromptIndex) {
+      emitQuestionChange(prevPromptIndex, currentPromptIndex);
+      setPrevPromptIndex(currentPromptIndex);
+    }
+  }, [currentPromptIndex, prevPromptIndex]);
 
   const handleResponse = (response: string) => {
     const promptId = currentPrompt.id;
@@ -150,19 +200,19 @@ export function PsychStation() {
 
   const allPromptsComplete = Object.keys(responses).length === PROMPTS.length;
 
+  // Locked state - minimal display
   if (stationState === StationState.LOCKED) {
     return (
       <motion.div
-        style={styles.container}
+        style={styles.lockedContainer}
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        className="glass-monolith"
+        animate={{ opacity: 0.4 }}
       >
         <div style={styles.header}>
           <h2 style={styles.title}>Psychometric Analysis</h2>
           <p style={styles.subtitle}>Station Locked</p>
         </div>
-        <p style={{ ...styles.description, textAlign: 'center' }}>
+        <p style={styles.lockedText}>
           Complete visual calibration to unlock psychometric assessment.
         </p>
       </motion.div>
@@ -174,15 +224,15 @@ export function PsychStation() {
       style={styles.container}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="glass-monolith"
+      transition={{ duration: 0.7, ease: 'easeOut' }}
     >
+      {/* Header Section */}
       <div style={styles.header}>
         <motion.h2
           style={styles.title}
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
         >
           Psychometric Analysis
         </motion.h2>
@@ -190,7 +240,7 @@ export function PsychStation() {
           style={styles.subtitle}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.35 }}
         >
           PERSONALITY_RESONANCE_CALIBRATION
         </motion.p>
@@ -198,98 +248,155 @@ export function PsychStation() {
           style={styles.description}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
         >
           Perceived similarity builds deeper, lasting emotional connection.
           Respond thoughtfully to calibrate psychometric compatibility vectors.
         </motion.p>
       </div>
 
-      {/* Progress Indicator */}
+      {/* Progress Orbs */}
       <motion.div
         style={styles.progress}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.6 }}
       >
-        {PROMPTS.map((_, index) => (
-          <div
-            key={index}
-            style={{
-              ...styles.progressDot,
-              ...(index === currentPromptIndex && !allPromptsComplete
-                ? styles.progressDotActive
-                : {}),
-              ...(responses[PROMPTS[index].id] ? styles.progressDotComplete : {}),
-            }}
-          />
-        ))}
+        {PROMPTS.map((prompt, index) => {
+          const isActive = index === currentPromptIndex && !allPromptsComplete;
+          const isComplete = !!responses[prompt.id];
+
+          return (
+            <motion.div
+              key={index}
+              style={mergeStyles(
+                styles.progressOrb,
+                isActive
+                  ? styles.progressOrbActive
+                  : isComplete
+                  ? styles.progressOrbComplete
+                  : styles.progressOrbInactive
+              )}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.7 + index * 0.1, type: 'spring' }}
+            />
+          );
+        })}
       </motion.div>
 
-      {/* Previous Responses Summary */}
+      {/* Previous Responses (Condensed) */}
       <AnimatePresence>
-        {Object.entries(responses).slice(0, currentPromptIndex).map(([key, value]) => (
+        {Object.keys(responses).length > 0 && !allPromptsComplete && (
           <motion.div
-            key={key}
-            style={styles.completedResponse}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+            style={styles.completedResponsesContainer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <p style={styles.responseLabel}>Response Recorded</p>
-            <p style={styles.responseText}>"{value.substring(0, 100)}..."</p>
+            {Object.entries(responses)
+              .slice(0, currentPromptIndex)
+              .map(([key, value]) => (
+                <motion.div
+                  key={key}
+                  style={styles.completedResponse}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <p style={styles.responseLabel}>Response Recorded</p>
+                  <p style={styles.responseText}>
+                    "{value.length > 80 ? value.substring(0, 80) + '...' : value}"
+                  </p>
+                </motion.div>
+              ))}
           </motion.div>
-        ))}
+        )}
       </AnimatePresence>
 
       {/* Felix Terminal */}
-      {!allPromptsComplete && (
-        <motion.div
-          key={currentPrompt.id}
-          style={styles.terminalWrapper}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <FelixTerminal
-            prompt={currentPrompt.prompt}
-            onSubmit={handleResponse}
-            isActive={stationState !== StationState.COMPLETED}
-          />
-        </motion.div>
-      )}
-
-      {/* Completion State */}
-      {allPromptsComplete && stationState !== StationState.COMPLETED && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ textAlign: 'center' }}
-        >
-          <p style={{ color: 'var(--gold)', marginBottom: '1rem' }}>
-            Psychometric calibration complete. {PROMPTS.length}/{PROMPTS.length} vectors analyzed.
-          </p>
-          <motion.button
-            style={styles.button}
-            onClick={handleProceed}
-            whileHover={{ transform: 'translateY(-2px)', boxShadow: '0 6px 30px rgba(212, 168, 83, 0.5)' }}
+      <AnimatePresence mode="wait">
+        {!allPromptsComplete && (
+          <motion.div
+            key={currentPrompt.id}
+            style={styles.terminalWrapper}
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -25 }}
+            transition={{ duration: 0.5 }}
           >
-            Proceed to Biometric Analysis
-          </motion.button>
-        </motion.div>
-      )}
+            <FelixTerminal
+              prompt={currentPrompt.prompt}
+              onSubmit={handleResponse}
+              isActive={stationState !== StationState.COMPLETED}
+              questionIndex={currentPromptIndex}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* Completion State - Ready to Proceed */}
+      <AnimatePresence>
+        {allPromptsComplete && stationState !== StationState.COMPLETED && (
+          <motion.div
+            style={styles.completionContainer}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <p style={styles.completionText}>
+              Psychometric calibration complete. {PROMPTS.length}/{PROMPTS.length} vectors analyzed.
+            </p>
+            <motion.button
+              style={styles.button}
+              onClick={handleProceed}
+              whileHover={{
+                y: -2,
+                boxShadow: '0 6px 30px rgba(212, 168, 83, 0.5), 0 0 40px rgba(212, 168, 83, 0.2)',
+                scale: 1.02,
+              }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Proceed to Biometric Analysis
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Station Complete */}
       {stationState === StationState.COMPLETED && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
           style={{ textAlign: 'center', marginTop: '2rem' }}
         >
-          <span style={{ color: 'var(--gold)', fontSize: '1.1rem' }}>
-            ✓ Psychometric analysis complete
+          <span style={styles.checkmark}>
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', delay: 0.2 }}
+            >
+              ✓
+            </motion.span>
+            Psychometric analysis complete
           </span>
         </motion.div>
       )}
+
+      {/* Keyframes for pulse animation */}
+      <style>{`
+        @keyframes pulse-glow {
+          0%, 100% {
+            box-shadow: 0 0 15px var(--gold), 0 0 30px rgba(212, 168, 83, 0.5);
+          }
+          50% {
+            box-shadow: 0 0 25px var(--gold), 0 0 50px rgba(212, 168, 83, 0.7);
+          }
+        }
+      `}</style>
     </motion.div>
   );
 }

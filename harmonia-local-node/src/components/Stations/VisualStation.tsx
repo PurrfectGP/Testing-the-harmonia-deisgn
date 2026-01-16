@@ -1,5 +1,6 @@
 /**
- * VisualStation - Phase 1: Visual Calibration
+ * VisualStation - Session 27: Seamless Design
+ * Phase 1: Visual Calibration with borderless UI
  * Handles file upload with Eye dilation effect
  */
 
@@ -7,12 +8,18 @@ import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { useApp, Phase, StationState } from '../../context/AppContext';
+import {
+  TextLayer,
+  SeamlessButton,
+} from '../../styles/seamlessStyles';
 
 const styles = {
   container: {
     width: '100%',
     maxWidth: '600px',
     padding: '2rem',
+    background: 'transparent',
+    border: 'none',
   },
   header: {
     textAlign: 'center' as const,
@@ -20,50 +27,50 @@ const styles = {
   },
   title: {
     fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+    fontSize: 'clamp(2rem, 5vw, 3rem)',
     fontWeight: 600,
-    color: 'var(--gold-champagne)',
-    marginBottom: '0.5rem',
+    ...TextLayer.PRIMARY,
+    marginBottom: '0.75rem',
+    letterSpacing: '0.02em',
   },
   subtitle: {
     fontFamily: "'JetBrains Mono', monospace",
-    fontSize: '0.75rem',
-    color: 'var(--text-muted)',
+    fontSize: '0.8rem',
+    ...TextLayer.HOLOGRAPHIC,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.2em',
+    letterSpacing: '0.25em',
   },
   description: {
-    color: 'var(--text-secondary)',
-    fontSize: '1rem',
-    lineHeight: 1.7,
-    marginTop: '1rem',
+    ...TextLayer.SECONDARY,
+    fontSize: '1.05rem',
+    lineHeight: 1.8,
+    marginTop: '1.25rem',
     maxWidth: '500px',
-    margin: '1rem auto',
+    margin: '1.25rem auto',
   },
   dropzone: {
-    border: '2px dashed rgba(212, 168, 83, 0.3)',
+    border: '2px dashed transparent',
     borderRadius: '16px',
     padding: '3rem 2rem',
     textAlign: 'center' as const,
     cursor: 'pointer',
     transition: 'all 0.3s ease',
-    background: 'rgba(45, 26, 28, 0.4)',
-    backdropFilter: 'blur(10px)',
+    background: 'rgba(18, 9, 10, 0.3)',
+    backdropFilter: 'blur(4px)',
   },
   dropzoneActive: {
-    border: '2px solid var(--gold)',
+    border: '2px dashed var(--gold)',
     background: 'rgba(212, 168, 83, 0.1)',
-    transform: 'scale(1.02)',
-    boxShadow: '0 0 40px rgba(212, 168, 83, 0.2)',
+    boxShadow: '0 0 40px rgba(212, 168, 83, 0.3)',
   },
   dropzoneText: {
-    color: 'var(--gold)',
+    ...TextLayer.ACCENT,
     fontSize: '1.1rem',
     fontWeight: 500,
     marginBottom: '0.5rem',
   },
   dropzoneSubtext: {
-    color: 'var(--text-muted)',
+    ...TextLayer.MUTED,
     fontSize: '0.85rem',
   },
   uploadIcon: {
@@ -71,13 +78,15 @@ const styles = {
     height: '64px',
     margin: '0 auto 1rem',
     color: 'var(--gold)',
+    filter: 'drop-shadow(0 0 10px rgba(212, 168, 83, 0.5))',
   },
   preview: {
     marginTop: '1.5rem',
     padding: '1rem',
-    background: 'rgba(45, 26, 28, 0.6)',
+    background: 'rgba(18, 9, 10, 0.3)',
+    backdropFilter: 'blur(4px)',
     borderRadius: '8px',
-    border: '1px solid rgba(212, 168, 83, 0.2)',
+    borderLeft: '2px solid rgba(212, 168, 83, 0.5)',
   },
   previewImage: {
     maxWidth: '200px',
@@ -85,36 +94,55 @@ const styles = {
     borderRadius: '8px',
     margin: '0 auto',
     display: 'block',
+    boxShadow: '0 0 20px rgba(212, 168, 83, 0.2)',
   },
   previewText: {
-    color: 'var(--text-secondary)',
+    ...TextLayer.TERMINAL,
     fontSize: '0.9rem',
-    marginTop: '0.5rem',
+    marginTop: '0.75rem',
+    textAlign: 'center' as const,
   },
   button: {
-    marginTop: '2rem',
-    padding: '1rem 3rem',
-    background: 'linear-gradient(135deg, var(--gold), var(--gold-champagne))',
-    color: 'var(--maroon-deep)',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '1rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    fontFamily: "'DM Sans', sans-serif",
+    ...SeamlessButton.PRIMARY,
+    display: 'block',
+    margin: '2rem auto 0',
+    fontSize: '1.05rem',
+    padding: '1.1rem 3rem',
+    letterSpacing: '0.03em',
   },
   progress: {
-    marginTop: '1rem',
+    marginTop: '1.5rem',
     height: '4px',
-    background: 'var(--dark-surface)',
+    background: 'rgba(45, 26, 28, 0.4)',
     borderRadius: '9999px',
     overflow: 'hidden',
+    boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
   },
   progressFill: {
     height: '100%',
-    background: 'linear-gradient(90deg, var(--maroon), var(--gold))',
+    background: 'linear-gradient(90deg, var(--maroon), var(--gold), var(--gold-champagne))',
     borderRadius: '9999px',
+    boxShadow: '0 0 10px var(--gold)',
+  },
+  lockedContainer: {
+    width: '100%',
+    maxWidth: '600px',
+    padding: '2rem',
+    background: 'transparent',
+    opacity: 0.4,
+  },
+  lockedText: {
+    ...TextLayer.MUTED,
+    textAlign: 'center' as const,
+    fontSize: '1rem',
+  },
+  checkmark: {
+    ...TextLayer.ACCENT,
+    fontSize: '1.2rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
   },
 };
 
@@ -167,8 +195,8 @@ export function VisualStation() {
     });
 
     // Simulate processing
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
+    for (let i = 0; i <= 100; i += 5) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
       setProgress(i);
     }
 
@@ -179,19 +207,19 @@ export function VisualStation() {
 
   const stationState = state.stationStates[Phase.VISUAL];
 
+  // Locked state
   if (stationState === StationState.LOCKED) {
     return (
       <motion.div
-        style={styles.container}
+        style={styles.lockedContainer}
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        className="glass-monolith"
+        animate={{ opacity: 0.4 }}
       >
         <div style={styles.header}>
           <h2 style={styles.title}>Visual Calibration</h2>
           <p style={styles.subtitle}>Station Locked</p>
         </div>
-        <p style={{ ...styles.description, textAlign: 'center' }}>
+        <p style={styles.lockedText}>
           Complete the previous station to unlock visual analysis.
         </p>
       </motion.div>
@@ -203,15 +231,14 @@ export function VisualStation() {
       style={styles.container}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="glass-monolith"
+      transition={{ duration: 0.7, ease: 'easeOut' }}
     >
       <div style={styles.header}>
         <motion.h2
           style={styles.title}
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
         >
           Visual Calibration
         </motion.h2>
@@ -219,7 +246,7 @@ export function VisualStation() {
           style={styles.subtitle}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.35 }}
         >
           HARMONIA_VISUAL_ENGINE_V5.3
         </motion.p>
@@ -227,30 +254,30 @@ export function VisualStation() {
           style={styles.description}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
         >
           Physical attraction drives the strongest initial spark in romantic connection.
           Upload a clear photograph for visual pattern analysis.
         </motion.p>
       </div>
 
+      {/* Drop Zone */}
       <motion.div
-        onClick={getRootProps().onClick}
-        onKeyDown={getRootProps().onKeyDown}
-        onFocus={getRootProps().onFocus}
-        onBlur={getRootProps().onBlur}
-        role={getRootProps().role}
-        tabIndex={getRootProps().tabIndex}
-        style={{
-          ...styles.dropzone,
-          ...(isDragActive ? styles.dropzoneActive : {}),
-        }}
-        whileHover={{ borderColor: 'var(--gold)' }}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.6 }}
+        whileHover={{
+          boxShadow: '0 0 30px rgba(212, 168, 83, 0.2)',
+        }}
       >
-        <input {...getInputProps()} />
+        <div
+          {...getRootProps()}
+          style={{
+            ...styles.dropzone,
+            ...(isDragActive ? styles.dropzoneActive : {}),
+          }}
+        >
+          <input {...getInputProps()} />
 
         {!preview ? (
           <>
@@ -262,7 +289,7 @@ export function VisualStation() {
               strokeWidth="1.5"
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.7 }}
             >
               <path
                 strokeLinecap="round"
@@ -281,8 +308,10 @@ export function VisualStation() {
             <p style={styles.previewText}>{uploadedFile?.name}</p>
           </div>
         )}
+        </div>
       </motion.div>
 
+      {/* Progress Bar */}
       {isProcessing && (
         <motion.div
           style={styles.progress}
@@ -293,18 +322,24 @@ export function VisualStation() {
             style={styles.progressFill}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.1 }}
           />
         </motion.div>
       )}
 
+      {/* Proceed Button */}
       {uploadedFile && !isProcessing && stationState !== StationState.COMPLETED && (
         <motion.button
           style={styles.button}
           onClick={handleProceed}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={{ transform: 'translateY(-2px)', boxShadow: '0 6px 30px rgba(212, 168, 83, 0.5)' }}
+          whileHover={{
+            y: -2,
+            boxShadow: '0 6px 30px rgba(212, 168, 83, 0.5), 0 0 40px rgba(212, 168, 83, 0.2)',
+            scale: 1.02,
+          }}
+          whileTap={{ scale: 0.98 }}
         >
           Initialize Visual Analysis
         </motion.button>
@@ -312,12 +347,20 @@ export function VisualStation() {
 
       {stationState === StationState.COMPLETED && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
           style={{ textAlign: 'center', marginTop: '2rem' }}
         >
-          <span style={{ color: 'var(--gold)', fontSize: '1.1rem' }}>
-            ✓ Visual calibration complete
+          <span style={styles.checkmark}>
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', delay: 0.2 }}
+            >
+              ✓
+            </motion.span>
+            Visual calibration complete
           </span>
         </motion.div>
       )}

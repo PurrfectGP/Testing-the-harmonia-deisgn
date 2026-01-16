@@ -1,5 +1,6 @@
 /**
- * ResultsStation - Phase 5: Results Dashboard
+ * ResultsStation - Session 27: Seamless Design
+ * Phase 5: Results Dashboard with borderless UI
  * Features Sealed Dossier reveal and Radar Chart visualization
  */
 
@@ -17,6 +18,7 @@ import {
 import { Radar } from 'react-chartjs-2';
 import { useApp, Phase, StationState } from '../../context/AppContext';
 import SparkBadge from '../UI/SparkBadge';
+import { TextLayer } from '../../styles/seamlessStyles';
 
 // Register Chart.js components
 ChartJS.register(
@@ -33,14 +35,17 @@ const styles = {
     width: '100%',
     maxWidth: '800px',
     padding: '2rem',
+    background: 'transparent',
+    border: 'none',
   },
   sealedDossier: {
     position: 'relative' as const,
-    background: 'rgba(45, 26, 28, 0.8)',
-    border: '2px solid var(--gold)',
+    background: 'rgba(18, 9, 10, 0.4)',
+    backdropFilter: 'blur(8px)',
     borderRadius: '16px',
     overflow: 'hidden',
     cursor: 'pointer',
+    boxShadow: '0 0 40px rgba(212, 168, 83, 0.1)',
   },
   sealOverlay: {
     position: 'absolute' as const,
@@ -59,17 +64,18 @@ const styles = {
     width: '120px',
     height: '120px',
     marginBottom: '1.5rem',
+    filter: 'drop-shadow(0 0 20px rgba(212, 168, 83, 0.3))',
   },
   sealText: {
     fontFamily: "'Cormorant Garamond', serif",
     fontSize: '1.5rem',
-    color: 'var(--gold-champagne)',
+    ...TextLayer.PRIMARY,
     textAlign: 'center' as const,
   },
   sealSubtext: {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: '0.75rem',
-    color: 'var(--text-muted)',
+    ...TextLayer.MUTED,
     marginTop: '0.5rem',
   },
   content: {
@@ -79,19 +85,19 @@ const styles = {
     textAlign: 'center' as const,
     marginBottom: '2rem',
     paddingBottom: '1.5rem',
-    borderBottom: '1px solid rgba(212, 168, 83, 0.2)',
+    borderBottom: '1px solid rgba(212, 168, 83, 0.15)',
   },
   title: {
     fontFamily: "'Cormorant Garamond', serif",
     fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
     fontWeight: 600,
-    color: 'var(--gold-champagne)',
-    marginBottom: '0.5rem',
+    ...TextLayer.PRIMARY,
+    marginBottom: '0.75rem',
   },
   subtitle: {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: '0.75rem',
-    color: 'var(--text-muted)',
+    ...TextLayer.HOLOGRAPHIC,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.2em',
   },
@@ -107,15 +113,16 @@ const styles = {
     marginBottom: '2rem',
   },
   card: {
-    background: 'rgba(45, 26, 28, 0.4)',
-    border: '1px solid rgba(212, 168, 83, 0.15)',
+    background: 'rgba(18, 9, 10, 0.3)',
+    backdropFilter: 'blur(4px)',
     borderRadius: '12px',
     padding: '1.5rem',
+    borderLeft: '2px solid rgba(212, 168, 83, 0.3)',
   },
   cardTitle: {
     fontFamily: "'Cormorant Garamond', serif",
     fontSize: '1.2rem',
-    color: 'var(--gold)',
+    ...TextLayer.ACCENT,
     marginBottom: '1rem',
     display: 'flex',
     alignItems: 'center',
@@ -140,25 +147,27 @@ const styles = {
     borderBottom: '1px solid rgba(212, 168, 83, 0.1)',
   },
   inventoryLabel: {
-    color: 'var(--text-secondary)',
+    ...TextLayer.SECONDARY,
     fontSize: '0.9rem',
   },
   inventoryValue: {
     fontFamily: "'JetBrains Mono', monospace",
-    color: 'var(--gold)',
+    ...TextLayer.ACCENT,
     fontSize: '0.9rem',
   },
   directive: {
-    background: 'linear-gradient(135deg, rgba(114, 47, 55, 0.3), rgba(45, 26, 28, 0.5))',
-    border: '1px solid var(--gold)',
+    background: 'rgba(114, 47, 55, 0.2)',
+    backdropFilter: 'blur(4px)',
     borderRadius: '8px',
     padding: '1.5rem',
     textAlign: 'center' as const,
+    borderLeft: '2px solid var(--gold)',
+    boxShadow: '0 0 30px rgba(212, 168, 83, 0.1)',
   },
   directiveTitle: {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: '0.7rem',
-    color: 'var(--gold)',
+    ...TextLayer.HOLOGRAPHIC,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.15em',
     marginBottom: '0.75rem',
@@ -166,9 +175,22 @@ const styles = {
   directiveText: {
     fontFamily: "'Cormorant Garamond', serif",
     fontSize: '1.3rem',
-    color: 'var(--gold-champagne)',
+    ...TextLayer.PRIMARY,
     fontStyle: 'italic' as const,
     lineHeight: 1.5,
+  },
+  lockedContainer: {
+    width: '100%',
+    maxWidth: '800px',
+    padding: '2rem',
+    background: 'transparent',
+    opacity: 0.4,
+  },
+  lockedText: {
+    ...TextLayer.MUTED,
+    textAlign: 'center' as const,
+    fontSize: '1rem',
+    padding: '3rem',
   },
 };
 
@@ -238,15 +260,15 @@ export function ResultsStation() {
     setIsSealed(false);
   };
 
+  // Locked state
   if (stationState === StationState.LOCKED || !results) {
     return (
       <motion.div
-        style={styles.container}
+        style={styles.lockedContainer}
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        className="glass-monolith"
+        animate={{ opacity: 0.4 }}
       >
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
+        <div style={{ textAlign: 'center' }}>
           <h2 style={styles.title}>Results Pending</h2>
           <p style={styles.subtitle}>Complete all analysis stations</p>
         </div>
@@ -259,12 +281,15 @@ export function ResultsStation() {
       style={styles.container}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
+      transition={{ duration: 0.7, ease: 'easeOut' }}
     >
       <motion.div
         style={styles.sealedDossier}
         onClick={isSealed ? handleUnseal : undefined}
         layout
+        whileHover={isSealed ? {
+          boxShadow: '0 0 60px rgba(212, 168, 83, 0.2)',
+        } : undefined}
       >
         {/* Sealed Overlay */}
         <AnimatePresence>
@@ -291,9 +316,16 @@ export function ResultsStation() {
                   <filter id="sealShadow" x="-20%" y="-20%" width="140%" height="140%">
                     <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#000" floodOpacity="0.4" />
                   </filter>
+                  <filter id="sealGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                    <feMerge>
+                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 </defs>
                 <circle cx="50" cy="50" r="45" fill="url(#sealGrad)" filter="url(#sealShadow)" />
-                <circle cx="50" cy="50" r="38" stroke="#D4A853" strokeWidth="1.5" fill="none" />
+                <circle cx="50" cy="50" r="38" stroke="#D4A853" strokeWidth="1.5" fill="none" filter="url(#sealGlow)" />
                 <text
                   x="50"
                   y="55"

@@ -1,13 +1,17 @@
 /**
- * BioStation - Phase 3: Biometric Ingestion
+ * BioStation - Session 27: Seamless Design
+ * Phase 3: Biometric Ingestion with borderless UI
  * Features DNA Helix visualization with file upload trigger
- * Enhanced with React Three Fiber 3D helix
  */
 
 import { useState, useCallback, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { useApp, Phase, StationState } from '../../context/AppContext';
+import {
+  TextLayer,
+  SeamlessButton,
+} from '../../styles/seamlessStyles';
 
 // Lazy load the 3D component for performance
 const DNAHelix3D = lazy(() => import('../3D/DNAHelix3D'));
@@ -17,6 +21,8 @@ const styles = {
     width: '100%',
     maxWidth: '600px',
     padding: '2rem',
+    background: 'transparent',
+    border: 'none',
   },
   header: {
     textAlign: 'center' as const,
@@ -24,25 +30,26 @@ const styles = {
   },
   title: {
     fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+    fontSize: 'clamp(2rem, 5vw, 3rem)',
     fontWeight: 600,
-    color: 'var(--gold-champagne)',
-    marginBottom: '0.5rem',
+    ...TextLayer.PRIMARY,
+    marginBottom: '0.75rem',
+    letterSpacing: '0.02em',
   },
   subtitle: {
     fontFamily: "'JetBrains Mono', monospace",
-    fontSize: '0.75rem',
-    color: 'var(--text-muted)',
+    fontSize: '0.8rem',
+    ...TextLayer.HOLOGRAPHIC,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.2em',
+    letterSpacing: '0.25em',
   },
   description: {
-    color: 'var(--text-secondary)',
-    fontSize: '1rem',
-    lineHeight: 1.7,
-    marginTop: '1rem',
+    ...TextLayer.SECONDARY,
+    fontSize: '1.05rem',
+    lineHeight: 1.8,
+    marginTop: '1.25rem',
     maxWidth: '500px',
-    margin: '1rem auto',
+    margin: '1.25rem auto',
   },
   helixContainer: {
     display: 'flex',
@@ -71,75 +78,83 @@ const styles = {
   dropzoneActive: {
     border: '2px dashed var(--gold)',
     background: 'rgba(212, 168, 83, 0.1)',
+    boxShadow: '0 0 30px rgba(212, 168, 83, 0.2)',
   },
   dropzoneText: {
-    color: 'var(--gold)',
+    ...TextLayer.ACCENT,
     fontSize: '1rem',
     fontWeight: 500,
-    background: 'rgba(18, 9, 10, 0.8)',
-    padding: '0.5rem 1rem',
-    borderRadius: '4px',
-    backdropFilter: 'blur(4px)',
+    background: 'rgba(18, 9, 10, 0.6)',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '8px',
+    backdropFilter: 'blur(8px)',
   },
   uploadedInfo: {
-    background: 'rgba(45, 26, 28, 0.6)',
-    border: '1px solid rgba(212, 168, 83, 0.2)',
+    background: 'rgba(18, 9, 10, 0.3)',
+    backdropFilter: 'blur(4px)',
     borderRadius: '8px',
-    padding: '1rem',
+    padding: '1rem 1.25rem',
     marginTop: '1rem',
     display: 'flex',
     alignItems: 'center',
     gap: '1rem',
+    borderLeft: '2px solid rgba(212, 168, 83, 0.5)',
   },
   fileIcon: {
     width: '40px',
     height: '40px',
     color: 'var(--gold)',
+    filter: 'drop-shadow(0 0 8px rgba(212, 168, 83, 0.5))',
   },
   fileName: {
-    color: 'var(--gold-champagne)',
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: '0.9rem',
+    ...TextLayer.TERMINAL,
+    fontSize: '0.95rem',
   },
   fileSize: {
-    color: 'var(--text-muted)',
+    ...TextLayer.MUTED,
     fontSize: '0.8rem',
   },
   button: {
-    marginTop: '2rem',
-    padding: '1rem 3rem',
-    background: 'linear-gradient(135deg, var(--gold), var(--gold-champagne))',
-    color: 'var(--maroon-deep)',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '1rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    fontFamily: "'DM Sans', sans-serif",
+    ...SeamlessButton.PRIMARY,
     display: 'block',
     margin: '2rem auto 0',
+    fontSize: '1.05rem',
+    padding: '1.1rem 3rem',
+    letterSpacing: '0.03em',
   },
   progress: {
-    marginTop: '1rem',
+    marginTop: '1.5rem',
     height: '4px',
-    background: 'var(--dark-surface)',
+    background: 'rgba(45, 26, 28, 0.4)',
     borderRadius: '9999px',
     overflow: 'hidden',
+    boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
   },
   progressFill: {
     height: '100%',
-    background: 'linear-gradient(90deg, var(--maroon), var(--gold))',
+    background: 'linear-gradient(90deg, var(--maroon), var(--gold), var(--gold-champagne))',
     borderRadius: '9999px',
+    boxShadow: '0 0 10px var(--gold)',
   },
-  crackle: {
-    position: 'absolute' as const,
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '200px',
-    height: '200px',
-    pointerEvents: 'none' as const,
+  lockedContainer: {
+    width: '100%',
+    maxWidth: '600px',
+    padding: '2rem',
+    background: 'transparent',
+    opacity: 0.4,
+  },
+  lockedText: {
+    ...TextLayer.MUTED,
+    textAlign: 'center' as const,
+    fontSize: '1rem',
+  },
+  checkmark: {
+    ...TextLayer.ACCENT,
+    fontSize: '1.2rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
   },
 };
 
@@ -190,7 +205,6 @@ function DNAHelixFallback({ isGlowing = false }: { isGlowing: boolean }) {
 
 // 3D Helix wrapper with loading state
 function DNAHelixDisplay({ isGlowing }: { isGlowing: boolean }) {
-  // Check for reduced motion preference
   const prefersReducedMotion = typeof window !== 'undefined'
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -244,7 +258,6 @@ export function BioStation() {
       payload: { phase: Phase.BIOMETRIC, state: StationState.PROCESSING },
     });
 
-    // Simulate processing
     for (let i = 0; i <= 100; i += 5) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       setProgress(i);
@@ -252,8 +265,6 @@ export function BioStation() {
 
     setIsProcessing(false);
     completeStation(Phase.BIOMETRIC);
-
-    // Start the fusion sequence
     startFusionSequence();
   };
 
@@ -263,19 +274,19 @@ export function BioStation() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  // Locked state
   if (stationState === StationState.LOCKED) {
     return (
       <motion.div
-        style={styles.container}
+        style={styles.lockedContainer}
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        className="glass-monolith"
+        animate={{ opacity: 0.4 }}
       >
         <div style={styles.header}>
           <h2 style={styles.title}>Biometric Ingestion</h2>
           <p style={styles.subtitle}>Station Locked</p>
         </div>
-        <p style={{ ...styles.description, textAlign: 'center' }}>
+        <p style={styles.lockedText}>
           Complete psychometric analysis to unlock biometric processing.
         </p>
       </motion.div>
@@ -287,15 +298,14 @@ export function BioStation() {
       style={styles.container}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="glass-monolith"
+      transition={{ duration: 0.7, ease: 'easeOut' }}
     >
       <div style={styles.header}>
         <motion.h2
           style={styles.title}
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
         >
           Biometric Ingestion
         </motion.h2>
@@ -303,7 +313,7 @@ export function BioStation() {
           style={styles.subtitle}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.35 }}
         >
           DNA_RESONANCE_ANALYZER_V5.3
         </motion.p>
@@ -311,7 +321,7 @@ export function BioStation() {
           style={styles.description}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
         >
           Genetic complementarity influences biological attraction signals.
           Upload biometric data for final synthesis calibration.
@@ -323,7 +333,7 @@ export function BioStation() {
         style={styles.helixContainer}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.6 }}
       >
         <DNAHelixDisplay isGlowing={isGlowing || isDragActive} />
 
@@ -336,9 +346,12 @@ export function BioStation() {
         >
           <input {...getInputProps()} />
           {!uploadedFile && (
-            <span style={styles.dropzoneText}>
+            <motion.span
+              style={styles.dropzoneText}
+              animate={isDragActive ? { scale: 1.05 } : { scale: 1 }}
+            >
               {isDragActive ? 'Release to analyze' : 'Drop biometric data onto helix'}
-            </span>
+            </motion.span>
           )}
         </div>
       </motion.div>
@@ -347,8 +360,9 @@ export function BioStation() {
       {uploadedFile && (
         <motion.div
           style={styles.uploadedInfo}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
         >
           <svg style={styles.fileIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -383,7 +397,12 @@ export function BioStation() {
           onClick={handleInitiateFusion}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={{ transform: 'translateY(-2px)', boxShadow: '0 6px 30px rgba(212, 168, 83, 0.5)' }}
+          whileHover={{
+            y: -2,
+            boxShadow: '0 6px 30px rgba(212, 168, 83, 0.5), 0 0 40px rgba(212, 168, 83, 0.2)',
+            scale: 1.02,
+          }}
+          whileTap={{ scale: 0.98 }}
         >
           Initiate Fusion Sequence
         </motion.button>
@@ -391,12 +410,20 @@ export function BioStation() {
 
       {stationState === StationState.COMPLETED && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
           style={{ textAlign: 'center', marginTop: '2rem' }}
         >
-          <span style={{ color: 'var(--gold)', fontSize: '1.1rem' }}>
-            ✓ Biometric analysis complete - Initiating fusion...
+          <span style={styles.checkmark}>
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', delay: 0.2 }}
+            >
+              ✓
+            </motion.span>
+            Biometric analysis complete - Initiating fusion...
           </span>
         </motion.div>
       )}

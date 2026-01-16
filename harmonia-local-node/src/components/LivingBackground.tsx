@@ -24,6 +24,7 @@ const CelticKnotLogo = lazy(() => import('./WebGL/CelticKnotLogo'));
 const ShaderEye = lazy(() => import('./WebGL/ShaderEye'));
 const NeuralNetwork = lazy(() => import('./WebGL/NeuralNetwork'));
 const ShaderHelix = lazy(() => import('./WebGL/ShaderHelix'));
+const FusionVortex = lazy(() => import('./WebGL/FusionVortex'));
 
 // Styles
 const styles = {
@@ -1268,30 +1269,52 @@ function HelixSVGFallback({ isGlowing = false }: { isGlowing?: boolean }) {
 }
 
 // ============================================
-// FUSION LAYER (Phase 4: Transition)
+// FUSION LAYER (Phase 4: Transition) - Session 8 WebGL Vortex
 // ============================================
 function FusionVisualization() {
   return (
     <motion.div
       style={{
         ...styles.layer,
-        background: 'radial-gradient(circle, rgba(212,168,83,0.3) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(212,168,83,0.2) 0%, transparent 70%)',
       }}
       initial={{ opacity: 0 }}
-      animate={{ opacity: [0, 1, 1, 0] }}
-      transition={{ duration: 4, times: [0, 0.3, 0.8, 1] }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
     >
-      <motion.div
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(212,168,83,0.5) 30%, transparent 70%)',
-        }}
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 2] }}
-        transition={{ duration: 2, delay: 1.5, ease: 'easeOut' }}
-      />
+      {/* WebGL Fusion Vortex - Session 8 */}
+      <Suspense
+        fallback={
+          <motion.div
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(212,168,83,0.5) 30%, transparent 70%)',
+            }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 2] }}
+            transition={{ duration: 2, ease: 'easeOut' }}
+          />
+        }
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+          }}
+        >
+          <FusionVortex
+            size={Math.min(window.innerWidth, window.innerHeight) * 0.8}
+            autoProgress={true}
+            duration={4}
+          />
+        </div>
+      </Suspense>
     </motion.div>
   );
 }

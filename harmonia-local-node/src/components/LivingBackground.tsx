@@ -25,6 +25,7 @@ const ShaderEye = lazy(() => import('./WebGL/ShaderEye'));
 const NeuralNetwork = lazy(() => import('./WebGL/NeuralNetwork'));
 const ShaderHelix = lazy(() => import('./WebGL/ShaderHelix'));
 const FusionVortex = lazy(() => import('./WebGL/FusionVortex'));
+const CelebrationBurst = lazy(() => import('./WebGL/CelebrationBurst'));
 
 // Styles
 const styles = {
@@ -1465,7 +1466,35 @@ export function LivingBackground() {
         )}
 
         {state.currentPhase === Phase.RESULTS && (
-          <SimpleParticleSwarm key="results-particles" />
+          <motion.div
+            key="results"
+            style={styles.layer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            {/* Base particle background */}
+            <SimpleParticleSwarm />
+            {/* Celebration burst overlay - Session 9 */}
+            <Suspense fallback={null}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <CelebrationBurst
+                  size={Math.min(window.innerWidth, window.innerHeight) * 0.8}
+                  autoTrigger={true}
+                  burstCount={4}
+                />
+              </div>
+            </Suspense>
+          </motion.div>
         )}
       </AnimatePresence>
 

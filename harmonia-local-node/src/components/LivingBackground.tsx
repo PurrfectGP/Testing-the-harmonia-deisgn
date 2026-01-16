@@ -17,6 +17,7 @@ import { loadPolygonMaskPlugin } from '@tsparticles/plugin-polygon-mask';
 import type { ISourceOptions } from '@tsparticles/engine';
 import { useApp, Phase } from '../context/AppContext';
 import { Logo } from './Logo';
+import { OrganicBackground } from './WebGL/OrganicBackground';
 
 // Lazy load 3D Helix for performance
 const DNAHelix3D = lazy(() => import('./3D/DNAHelix3D'));
@@ -1306,8 +1307,35 @@ export function LivingBackground() {
     return () => window.removeEventListener('typing-speed' as any, handleTypingSpeed);
   }, []);
 
+  // Determine organic background parameters based on phase
+  const organicParams = useMemo(() => {
+    switch (state.currentPhase) {
+      case Phase.INTRO:
+        return { frequency: 0.4, amplitude: 0.12, intensity: 0.9 };
+      case Phase.VISUAL:
+        return { frequency: 0.5, amplitude: 0.15, intensity: 1.0 };
+      case Phase.PSYCHOMETRIC:
+        return { frequency: 0.8, amplitude: 0.2, intensity: 1.1 };
+      case Phase.BIOMETRIC:
+        return { frequency: 0.6, amplitude: 0.18, intensity: 1.0 };
+      case Phase.FUSION:
+        return { frequency: 1.2, amplitude: 0.3, intensity: 1.3 };
+      case Phase.RESULTS:
+        return { frequency: 0.5, amplitude: 0.1, intensity: 0.8 };
+      default:
+        return { frequency: 0.5, amplitude: 0.15, intensity: 1.0 };
+    }
+  }, [state.currentPhase]);
+
   return (
     <div style={styles.container}>
+      {/* WebGL Organic Background - Always visible as base layer */}
+      <OrganicBackground
+        frequency={organicParams.frequency}
+        amplitude={organicParams.amplitude}
+        intensity={organicParams.intensity}
+      />
+
       <AnimatePresence mode="wait">
         {state.currentPhase === Phase.INTRO && (
           <AdvancedParticleSwarm key="particles" withLogoMask={true} />

@@ -1,13 +1,20 @@
 /**
  * LivingBackground - The visual engine layer
  * Manages transitions between Particle Swarm, Eye, Orbit, and Helix visualizations
- * Enhanced with logo masking effect and reduced motion support
+ *
+ * SESSION 1 ENHANCEMENTS:
+ * - Polygon mask plugin: Particles form Celtic Knot logo shape
+ * - Mouse repulsion/attraction: Particles explode on hover, return to form
+ * - Color gradient animation: Gold → Champagne → Maroon spectrum
+ * - Multi-layer parallax: Foreground/background depth layering
  */
 
 import { useEffect, useMemo, useCallback, useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Particles, { initParticlesEngine } from '@tsparticles/react';
 import { loadSlim } from '@tsparticles/slim';
+import { loadPolygonMaskPlugin } from '@tsparticles/plugin-polygon-mask';
+import type { ISourceOptions } from '@tsparticles/engine';
 import { useApp, Phase } from '../context/AppContext';
 import { Logo } from './Logo';
 
@@ -44,18 +51,440 @@ const styles = {
   },
 };
 
+// Color palette for gradient animation
+const PARTICLE_COLORS = ['#D4A853', '#F0C86E', '#F5D98A', '#C4956A', '#722F37'];
+
 // ============================================
-// PARTICLE SWARM LAYER (Phase 0: Intro) with Logo Masking
+// ADVANCED PARTICLE SWARM (Session 1 Enhanced)
+// Features: Polygon Mask, Multi-layer Parallax, Color Animation
 // ============================================
-function ParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
+function AdvancedParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
   const [init, setInit] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
-    // Check for reduced motion preference
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setPrefersReducedMotion(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
+  useEffect(() => {
+    initParticlesEngine(async (engine) => {
+      await loadSlim(engine);
+      await loadPolygonMaskPlugin(engine);
+    }).then(() => {
+      setInit(true);
+    });
+  }, []);
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+  // LAYER 1: Background particles (slower, smaller, subtle)
+  const backgroundParticlesOptions = useMemo<ISourceOptions>(() => ({
+    fullScreen: false,
+    background: { color: { value: 'transparent' } },
+    fpsLimit: prefersReducedMotion ? 30 : 60,
+    particles: {
+      color: {
+        value: PARTICLE_COLORS,
+        animation: {
+          h: { enable: !prefersReducedMotion, speed: 5, sync: false },
+          s: { enable: false },
+          l: { enable: !prefersReducedMotion, speed: 2, sync: false, offset: { min: -10, max: 10 } },
+        }
+      },
+      links: {
+        color: { value: '#D4A853' },
+        distance: 200,
+        enable: true,
+        opacity: 0.15,
+        width: 0.5,
+        triangles: { enable: false },
+      },
+      move: {
+        enable: !prefersReducedMotion,
+        speed: 0.3,
+        direction: 'none' as const,
+        outModes: { default: 'bounce' as const },
+        random: true,
+        straight: false,
+      },
+      number: {
+        value: isMobile ? 20 : 40,
+        density: { enable: true, width: 1200, height: 1200 },
+      },
+      opacity: {
+        value: { min: 0.1, max: 0.3 },
+        animation: {
+          enable: !prefersReducedMotion,
+          speed: 0.5,
+          sync: false,
+        },
+      },
+      shape: { type: 'circle' },
+      size: {
+        value: { min: 1, max: 2 },
+      },
+    },
+    interactivity: {
+      events: {
+        onHover: { enable: false },
+        onClick: { enable: false },
+      },
+    },
+    detectRetina: true,
+  }), [prefersReducedMotion, isMobile]);
+
+  // LAYER 2: Main particles with polygon mask (logo shape)
+  const mainParticlesOptions = useMemo<ISourceOptions>(() => ({
+    fullScreen: false,
+    background: { color: { value: 'transparent' } },
+    fpsLimit: prefersReducedMotion ? 30 : 60,
+    particles: {
+      color: {
+        value: PARTICLE_COLORS,
+        animation: {
+          h: { enable: !prefersReducedMotion, speed: 10, sync: true },
+          s: { enable: false },
+          l: { enable: false },
+        }
+      },
+      links: {
+        color: { value: '#D4A853' },
+        distance: 120,
+        enable: true,
+        opacity: 0.4,
+        width: 1,
+        consent: false,
+        triangles: {
+          enable: !prefersReducedMotion && !isMobile,
+          color: '#D4A853',
+          opacity: 0.05,
+        },
+      },
+      move: {
+        enable: !prefersReducedMotion,
+        speed: 1,
+        direction: 'none' as const,
+        outModes: { default: 'bounce' as const },
+        attract: {
+          enable: true,
+          distance: 150,
+          rotate: { x: 600, y: 1200 },
+        },
+        trail: {
+          enable: false,
+        },
+      },
+      number: {
+        value: isMobile ? 60 : 120,
+        density: { enable: true, width: 800, height: 800 },
+      },
+      opacity: {
+        value: { min: 0.4, max: 0.9 },
+        animation: {
+          enable: !prefersReducedMotion,
+          speed: 1,
+          sync: false,
+        },
+      },
+      shape: { type: 'circle' },
+      size: {
+        value: { min: 1, max: 4 },
+        animation: {
+          enable: !prefersReducedMotion,
+          speed: 2,
+          sync: false,
+        },
+      },
+    },
+    interactivity: {
+      events: {
+        onHover: {
+          enable: !prefersReducedMotion,
+          mode: ['repulse', 'connect'] as const,
+          parallax: {
+            enable: true,
+            force: 60,
+            smooth: 10,
+          },
+        },
+        onClick: {
+          enable: true,
+          mode: 'push' as const,
+        },
+        resize: { enable: true },
+      },
+      modes: {
+        repulse: {
+          distance: 150,
+          duration: 0.4,
+          speed: 1,
+          easing: 'ease-out-quad' as const,
+        },
+        connect: {
+          distance: 100,
+          links: { opacity: 0.5 },
+          radius: 120,
+        },
+        push: { quantity: 6 },
+        attract: {
+          distance: 200,
+          duration: 0.4,
+          speed: 1,
+        },
+      },
+    },
+    polygon: withLogoMask ? {
+      enable: true,
+      type: 'inline' as const,
+      move: {
+        type: 'path' as const,
+        radius: 10,
+      },
+      inline: {
+        arrangement: 'equidistant' as const,
+      },
+      draw: {
+        enable: true,
+        stroke: {
+          color: { value: 'rgba(212, 168, 83, 0.2)' },
+          width: 1,
+          opacity: 0.3,
+        },
+      },
+      url: '/celtic-knot.svg',
+      scale: 0.5,
+      position: { x: 50, y: 50 },
+    } : undefined,
+    detectRetina: true,
+  }), [prefersReducedMotion, isMobile, withLogoMask]);
+
+  // LAYER 3: Foreground particles (faster, larger, prominent)
+  const foregroundParticlesOptions = useMemo<ISourceOptions>(() => ({
+    fullScreen: false,
+    background: { color: { value: 'transparent' } },
+    fpsLimit: prefersReducedMotion ? 30 : 60,
+    particles: {
+      color: { value: '#F5D98A' },
+      links: {
+        enable: false,
+      },
+      move: {
+        enable: !prefersReducedMotion,
+        speed: 2,
+        direction: 'none' as const,
+        outModes: { default: 'out' as const },
+        random: true,
+      },
+      number: {
+        value: isMobile ? 8 : 15,
+      },
+      opacity: {
+        value: { min: 0.2, max: 0.6 },
+        animation: {
+          enable: !prefersReducedMotion,
+          speed: 0.8,
+          sync: false,
+        },
+      },
+      shape: { type: 'circle' },
+      size: {
+        value: { min: 3, max: 6 },
+        animation: {
+          enable: !prefersReducedMotion,
+          speed: 3,
+          sync: false,
+        },
+      },
+      shadow: {
+        blur: 10,
+        color: { value: '#D4A853' },
+        enable: true,
+        offset: { x: 0, y: 0 },
+      },
+    },
+    interactivity: {
+      events: {
+        onHover: {
+          enable: !prefersReducedMotion,
+          mode: 'bubble' as const,
+        },
+        onClick: { enable: false },
+      },
+      modes: {
+        bubble: {
+          distance: 200,
+          size: 8,
+          duration: 0.3,
+          opacity: 0.8,
+        },
+      },
+    },
+    detectRetina: true,
+  }), [prefersReducedMotion, isMobile]);
+
+  if (!init) return null;
+
+  return (
+    <motion.div
+      style={styles.layer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 1 }}
+    >
+      {/* LAYER 1: Background particles (subtle, slow) */}
+      <Particles
+        id="particles-background"
+        options={backgroundParticlesOptions}
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          zIndex: 1,
+        }}
+      />
+
+      {/* LAYER 2: Main particles with polygon mask */}
+      <Particles
+        id="particles-main"
+        options={mainParticlesOptions}
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          zIndex: 2,
+        }}
+      />
+
+      {/* LAYER 3: Foreground particles (prominent, fast) */}
+      <Particles
+        id="particles-foreground"
+        options={foregroundParticlesOptions}
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          zIndex: 3,
+        }}
+      />
+
+      {/* Logo overlay with enhanced effects */}
+      {withLogoMask && (
+        <motion.div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '280px',
+            height: '280px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.5, ease: 'easeOut', delay: 0.5 }}
+        >
+          {/* Outer pulsing ring */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              width: '120%',
+              height: '120%',
+              borderRadius: '50%',
+              border: '1px solid rgba(212, 168, 83, 0.15)',
+            }}
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.3, 0.1, 0.3],
+            }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Middle glowing ring */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              border: '2px solid rgba(212, 168, 83, 0.3)',
+              boxShadow: '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
+            }}
+            animate={{
+              boxShadow: [
+                '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
+                '0 0 80px rgba(212, 168, 83, 0.4), inset 0 0 60px rgba(212, 168, 83, 0.2)',
+                '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
+              ],
+              scale: [1, 1.03, 1],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          />
+
+          {/* Logo with breathing effect */}
+          <motion.div
+            animate={{
+              scale: [1, 1.02, 1],
+              filter: [
+                'drop-shadow(0 0 10px rgba(212, 168, 83, 0.5))',
+                'drop-shadow(0 0 20px rgba(212, 168, 83, 0.8))',
+                'drop-shadow(0 0 10px rgba(212, 168, 83, 0.5))',
+              ],
+            }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <Logo size={180} animated={true} />
+          </motion.div>
+
+          {/* Rotating dashed orbit */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              width: '110%',
+              height: '110%',
+              borderRadius: '50%',
+              border: '1px dashed rgba(212, 168, 83, 0.25)',
+            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+          />
+
+          {/* Counter-rotating inner orbit */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              width: '90%',
+              height: '90%',
+              borderRadius: '50%',
+              border: '1px dashed rgba(114, 47, 55, 0.2)',
+            }}
+            animate={{ rotate: -360 }}
+            transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+          />
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+// ============================================
+// SIMPLE PARTICLE SWARM (For Results phase - no mask)
+// ============================================
+function SimpleParticleSwarm() {
+  const [init, setInit] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
@@ -69,16 +498,14 @@ function ParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
     });
   }, []);
 
-  // Reduce particle count on mobile for performance
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const particleCount = isMobile ? 40 : 80;
 
-  const particlesOptions = useMemo(() => ({
+  const particlesOptions = useMemo<ISourceOptions>(() => ({
     fullScreen: false,
     background: { color: { value: 'transparent' } },
     fpsLimit: prefersReducedMotion ? 30 : 60,
     particles: {
-      color: { value: '#D4A853' },
+      color: { value: PARTICLE_COLORS },
       links: {
         color: '#D4A853',
         distance: 150,
@@ -88,26 +515,16 @@ function ParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
       },
       move: {
         enable: !prefersReducedMotion,
-        speed: prefersReducedMotion ? 0.3 : 1,
+        speed: 1,
         direction: 'none' as const,
         outModes: { default: 'bounce' as const },
-        attract: {
-          enable: !prefersReducedMotion,
-          rotateX: 600,
-          rotateY: 1200,
-        },
       },
       number: {
-        value: particleCount,
-        density: { enable: true, area: 800 },
+        value: isMobile ? 40 : 80,
+        density: { enable: true, width: 800, height: 800 },
       },
       opacity: {
         value: { min: 0.3, max: 0.8 },
-        animation: {
-          enable: !prefersReducedMotion,
-          speed: 1,
-          minimumValue: 0.3,
-        },
       },
       shape: { type: 'circle' },
       size: {
@@ -125,7 +542,7 @@ function ParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
       },
     },
     detectRetina: true,
-  }), [prefersReducedMotion, particleCount]);
+  }), [prefersReducedMotion, isMobile]);
 
   if (!init) return null;
 
@@ -138,67 +555,10 @@ function ParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
       transition={{ duration: 1 }}
     >
       <Particles
-        id="tsparticles"
+        id="particles-simple"
         options={particlesOptions}
         style={{ width: '100%', height: '100%' }}
       />
-      {/* Logo mask overlay effect */}
-      {withLogoMask && (
-        <motion.div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '220px',
-            height: '220px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            pointerEvents: 'none',
-          }}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-        >
-          {/* Glowing ring around logo */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              border: '2px solid rgba(212, 168, 83, 0.3)',
-              boxShadow: '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
-            }}
-            animate={{
-              boxShadow: [
-                '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
-                '0 0 60px rgba(212, 168, 83, 0.4), inset 0 0 60px rgba(212, 168, 83, 0.2)',
-                '0 0 40px rgba(212, 168, 83, 0.2), inset 0 0 40px rgba(212, 168, 83, 0.1)',
-              ],
-              scale: [1, 1.02, 1],
-            }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Logo with pulse effect */}
-          <Logo size={160} animated={true} />
-
-          {/* Particle trail effect around logo */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              border: '1px dashed rgba(212, 168, 83, 0.3)',
-            }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-          />
-        </motion.div>
-      )}
     </motion.div>
   );
 }
@@ -207,7 +567,6 @@ function ParticleSwarm({ withLogoMask = false }: { withLogoMask?: boolean }) {
 // EYE SVG LAYER (Phase 1: Visual)
 // ============================================
 function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mouseY?: number }) {
-  // Calculate pupil offset based on mouse position
   const pupilOffsetX = (mouseX - 0.5) * 20;
   const pupilOffsetY = (mouseY - 0.5) * 20;
 
@@ -226,7 +585,6 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
       >
-        {/* Outer glow */}
         <defs>
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="4" result="coloredBlur" />
@@ -241,10 +599,8 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
           </radialGradient>
         </defs>
 
-        {/* Background circle */}
         <circle cx="100" cy="100" r="90" fill="url(#eyeGradient)" />
 
-        {/* Outer ring */}
         <motion.circle
           cx="100"
           cy="100"
@@ -258,7 +614,6 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
           transition={{ duration: 2, ease: 'easeInOut' }}
         />
 
-        {/* Diamond frame */}
         <motion.rect
           x="30"
           y="30"
@@ -274,7 +629,6 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
           transition={{ duration: 1.5, delay: 0.5 }}
         />
 
-        {/* Upper eyelid */}
         <motion.path
           d="M30 100 Q100 40 170 100"
           stroke="#D4A853"
@@ -286,7 +640,6 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
           transition={{ duration: 1, ease: 'easeOut' }}
         />
 
-        {/* Lower eyelid */}
         <motion.path
           d="M30 100 Q100 160 170 100"
           stroke="#D4A853"
@@ -298,7 +651,6 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
           transition={{ duration: 1, ease: 'easeOut' }}
         />
 
-        {/* Iris */}
         <motion.circle
           cx="100"
           cy="100"
@@ -311,7 +663,6 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
           transition={{ duration: 0.8, delay: 0.5 }}
         />
 
-        {/* Pupil - tracks mouse */}
         <motion.circle
           cx={100 + pupilOffsetX}
           cy={100 + pupilOffsetY}
@@ -322,7 +673,6 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
           transition={{ duration: 0.5, delay: 0.8 }}
         />
 
-        {/* Pupil highlight */}
         <motion.circle
           cx={95 + pupilOffsetX}
           cy={95 + pupilOffsetY}
@@ -364,7 +714,6 @@ function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
           </filter>
         </defs>
 
-        {/* Outer orbit ring */}
         <motion.circle
           cx="100"
           cy="100"
@@ -379,7 +728,6 @@ function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
           style={{ transformOrigin: 'center' }}
         />
 
-        {/* Middle orbit ring */}
         <motion.circle
           cx="100"
           cy="100"
@@ -394,7 +742,6 @@ function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
           style={{ transformOrigin: 'center' }}
         />
 
-        {/* Inner orbit ring */}
         <motion.circle
           cx="100"
           cy="100"
@@ -409,7 +756,6 @@ function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
           style={{ transformOrigin: 'center' }}
         />
 
-        {/* Center golden circle */}
         <motion.circle
           cx="100"
           cy="100"
@@ -421,7 +767,6 @@ function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
           transition={{ duration: 0.5 }}
         />
 
-        {/* Orbiting nodes */}
         {[0, 120, 240].map((angle, i) => (
           <motion.g
             key={i}
@@ -465,7 +810,6 @@ function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  // Use 3D helix for non-reduced motion users
   if (!prefersReducedMotion) {
     return (
       <motion.div
@@ -485,7 +829,6 @@ function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
   return <HelixSVGFallback isGlowing={isGlowing} />;
 }
 
-// SVG Fallback for reduced motion or loading state
 function HelixSVGFallback({ isGlowing = false }: { isGlowing?: boolean }) {
   return (
     <motion.div
@@ -558,7 +901,6 @@ function FusionVisualization() {
       animate={{ opacity: [0, 1, 1, 0] }}
       transition={{ duration: 4, times: [0, 0.3, 0.8, 1] }}
     >
-      {/* Flash effect */}
       <motion.div
         style={{
           position: 'absolute',
@@ -582,7 +924,6 @@ export function LivingBackground() {
   const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
   const [typingSpeed, setTypingSpeed] = useState(1);
 
-  // Track mouse position for Eye parallax
   const handleMouseMove = useCallback((e: MouseEvent) => {
     setMousePosition({
       x: e.clientX / window.innerWidth,
@@ -595,7 +936,6 @@ export function LivingBackground() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [handleMouseMove]);
 
-  // Listen for typing speed events (from Felix Terminal)
   useEffect(() => {
     const handleTypingSpeed = (e: CustomEvent) => {
       setTypingSpeed(e.detail.speed || 1);
@@ -608,7 +948,7 @@ export function LivingBackground() {
     <div style={styles.container}>
       <AnimatePresence mode="wait">
         {state.currentPhase === Phase.INTRO && (
-          <ParticleSwarm key="particles" withLogoMask={true} />
+          <AdvancedParticleSwarm key="particles" withLogoMask={true} />
         )}
 
         {state.currentPhase === Phase.VISUAL && (
@@ -632,7 +972,7 @@ export function LivingBackground() {
         )}
 
         {state.currentPhase === Phase.RESULTS && (
-          <ParticleSwarm key="results-particles" />
+          <SimpleParticleSwarm key="results-particles" />
         )}
       </AnimatePresence>
 
@@ -649,6 +989,7 @@ export function LivingBackground() {
             radial-gradient(ellipse at 70% 80%, rgba(114, 47, 55, 0.06) 0%, transparent 50%)
           `,
           pointerEvents: 'none',
+          zIndex: 100,
         }}
       />
     </div>

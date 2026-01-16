@@ -1,5 +1,8 @@
 /**
  * OrganicBackground - WebGL flowing membrane background
+ * Session 1: Base organic flowing shader
+ * Session 2: Phase-reactive morphing with GSAP transitions
+ *
  * Inspired by jellyfish WebGL demo
  * Uses vertex displacement with simplex noise for organic flowing effect
  */
@@ -7,6 +10,19 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import gsap from 'gsap';
+
+// Phase constants matching AppContext
+export const ShaderPhase = {
+  INTRO: 0,
+  VISUAL: 1,
+  PSYCHOMETRIC: 2,
+  BIOMETRIC: 3,
+  FUSION: 4,
+  RESULTS: 5,
+} as const;
+
+export type ShaderPhase = (typeof ShaderPhase)[keyof typeof ShaderPhase];
 
 // Harmonia color palette
 const COLORS = {
@@ -17,17 +33,80 @@ const COLORS = {
   surface: new THREE.Color('#2D1A1C'),
 };
 
-// Vertex shader with simplex noise and displacement
+// Phase-specific shader configurations
+const PHASE_CONFIGS = {
+  [ShaderPhase.INTRO]: {
+    frequency: 0.4,
+    amplitude: 0.12,
+    timeSpeed: 0.3,
+    waveComplexity: 1.0,
+    vortexStrength: 0.0,
+    pulseIntensity: 0.15,
+    colorShift: 0.0,
+  },
+  [ShaderPhase.VISUAL]: {
+    frequency: 0.5,
+    amplitude: 0.15,
+    timeSpeed: 0.35,
+    waveComplexity: 1.2,
+    vortexStrength: 0.0,
+    pulseIntensity: 0.2,
+    colorShift: 0.1,
+  },
+  [ShaderPhase.PSYCHOMETRIC]: {
+    frequency: 0.8,
+    amplitude: 0.22,
+    timeSpeed: 0.5,
+    waveComplexity: 2.0,
+    vortexStrength: 0.1,
+    pulseIntensity: 0.35,
+    colorShift: 0.2,
+  },
+  [ShaderPhase.BIOMETRIC]: {
+    frequency: 0.6,
+    amplitude: 0.18,
+    timeSpeed: 0.4,
+    waveComplexity: 1.5,
+    vortexStrength: 0.2,
+    pulseIntensity: 0.25,
+    colorShift: 0.15,
+  },
+  [ShaderPhase.FUSION]: {
+    frequency: 1.2,
+    amplitude: 0.35,
+    timeSpeed: 0.8,
+    waveComplexity: 3.0,
+    vortexStrength: 0.8,
+    pulseIntensity: 0.6,
+    colorShift: 0.4,
+  },
+  [ShaderPhase.RESULTS]: {
+    frequency: 0.5,
+    amplitude: 0.1,
+    timeSpeed: 0.25,
+    waveComplexity: 1.0,
+    vortexStrength: 0.0,
+    pulseIntensity: 0.3,
+    colorShift: 0.0,
+  },
+};
+
+// Enhanced vertex shader with phase-reactive displacement
 const vertexShader = `
 uniform float u_time;
 uniform vec2 u_mouse;
 uniform float u_frequency;
 uniform float u_amplitude;
 uniform float u_mouseInfluence;
+uniform float u_phase;
+uniform float u_timeSpeed;
+uniform float u_waveComplexity;
+uniform float u_vortexStrength;
 
 varying vec2 vUv;
 varying float vElevation;
 varying float vDistortion;
+varying float vPhaseEffect;
 
 // Simplex noise functions
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -95,13 +174,14 @@ float snoise(vec3 v) {
   return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
-// Fractal Brownian Motion
-float fbm(vec3 p, float lacunarity, float gain) {
+// Fractal Brownian Motion with variable octaves
+float fbm(vec3 p, float lacunarity, float gain, int octaves) {
   float sum = 0.0;
   float amp = 1.0;
   float freq = 1.0;
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 6; i++) {
+    if (i >= octaves) break;
     sum += snoise(p * freq) * amp;
     amp *= gain;
     freq *= lacunarity;
@@ -114,20 +194,50 @@ void main() {
   vUv = uv;
 
   vec3 pos = position;
+  float time = u_time * u_timeSpeed;
+
+  // Wave complexity determines fBM octaves
+  int octaves = int(u_waveComplexity) + 2;
 
   // Primary organic wave using fBM
   float noiseVal = fbm(
-    vec3(pos.x * u_frequency, pos.y * u_frequency, u_time * 0.3),
+    vec3(pos.x * u_frequency, pos.y * u_frequency, time),
     2.0,
-    0.5
+    0.5,
+    octaves
   );
 
-  // Secondary detail wave
+  // Secondary detail wave - more active in higher phases
   float detailNoise = snoise(vec3(
-    pos.x * u_frequency * 2.0 + u_time * 0.5,
+    pos.x * u_frequency * 2.0 + time * 1.5,
     pos.y * u_frequency * 2.0,
-    u_time * 0.2
-  )) * 0.3;
+    time * 0.5
+  )) * 0.3 * u_waveComplexity;
+
+  // Psychometric: Neural spike patterns
+  float neuralSpike = 0.0;
+  if (u_phase > 1.5 && u_phase < 2.5) {
+    float spikePattern = sin(pos.x * 20.0 + time * 8.0) * sin(pos.y * 20.0 + time * 6.0);
+    neuralSpike = max(0.0, spikePattern) * 0.15;
+  }
+
+  // Biometric: DNA helix twist pattern
+  float helixTwist = 0.0;
+  if (u_phase > 2.5 && u_phase < 3.5) {
+    float angle = atan(pos.y, pos.x);
+    float radius = length(pos.xy);
+    helixTwist = sin(angle * 2.0 + radius * 3.0 - time * 2.0) * 0.1;
+  }
+
+  // Fusion: Vortex convergence
+  float vortex = 0.0;
+  if (u_vortexStrength > 0.01) {
+    vec2 center = vec2(0.0);
+    float dist = length(pos.xy - center);
+    float angle = atan(pos.y - center.y, pos.x - center.x);
+    vortex = sin(angle * 4.0 + dist * 5.0 - time * 4.0) * u_vortexStrength;
+    vortex *= exp(-dist * 0.5); // Fade with distance
+  }
 
   // Mouse interaction - creates organic ripple
   vec2 mousePos = u_mouse * 2.0 - 1.0;
@@ -136,18 +246,19 @@ void main() {
   float mouseEffect = mouseWave * u_mouseInfluence;
 
   // Combine all effects
-  float elevation = (noiseVal + detailNoise) * u_amplitude + mouseEffect * 0.15;
+  float elevation = (noiseVal + detailNoise + neuralSpike + helixTwist + vortex) * u_amplitude + mouseEffect * 0.15;
 
   pos.z += elevation;
 
   vElevation = elevation;
   vDistortion = noiseVal;
+  vPhaseEffect = neuralSpike + helixTwist + vortex;
 
   gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 }
 `;
 
-// Fragment shader with Harmonia color palette
+// Enhanced fragment shader with phase-reactive coloring
 const fragmentShader = `
 uniform float u_time;
 uniform vec3 u_colorGold;
@@ -156,10 +267,14 @@ uniform vec3 u_colorChampagne;
 uniform vec3 u_colorDark;
 uniform float u_phase;
 uniform float u_intensity;
+uniform float u_pulseIntensity;
+uniform float u_colorShift;
+uniform float u_timeSpeed;
 
 varying vec2 vUv;
 varying float vElevation;
 varying float vDistortion;
+varying float vPhaseEffect;
 
 // Simplex 2D noise for fragment effects
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -188,17 +303,30 @@ float snoise2D(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
+// HSV to RGB conversion
+vec3 hsv2rgb(vec3 c) {
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
 void main() {
+  float time = u_time * u_timeSpeed;
+
   // Base gradient from dark
   vec3 baseColor = mix(u_colorDark, u_colorDark * 1.3, vUv.y);
 
   // Organic flowing pattern
-  float pattern = snoise2D(vUv * 3.0 + u_time * 0.1);
-  float pattern2 = snoise2D(vUv * 6.0 - u_time * 0.15) * 0.5;
+  float pattern = snoise2D(vUv * 3.0 + time * 0.3);
+  float pattern2 = snoise2D(vUv * 6.0 - time * 0.4) * 0.5;
   float combinedPattern = pattern + pattern2;
 
   // Color based on elevation and pattern
   float colorMix = (vElevation + 0.5) * 0.5 + combinedPattern * 0.2;
+  colorMix = clamp(colorMix, 0.0, 1.0);
+
+  // Apply color shift based on phase
+  colorMix = colorMix + u_colorShift * sin(time * 2.0) * 0.1;
   colorMix = clamp(colorMix, 0.0, 1.0);
 
   // Three-way color blend: dark -> maroon -> gold
@@ -209,18 +337,42 @@ void main() {
     gradientColor = mix(u_colorMaroon, u_colorGold, (colorMix - 0.5) * 2.0);
   }
 
+  // Psychometric phase: Add neural firing highlights
+  if (u_phase > 1.5 && u_phase < 2.5) {
+    float neural = step(0.7, snoise2D(vUv * 30.0 + time * 5.0));
+    gradientColor = mix(gradientColor, u_colorChampagne, neural * 0.4);
+  }
+
+  // Fusion phase: Intensify colors toward center
+  if (u_phase > 3.5 && u_phase < 4.5) {
+    float distFromCenter = length(vUv - 0.5);
+    float fusionGlow = exp(-distFromCenter * 4.0);
+    gradientColor = mix(gradientColor, u_colorChampagne, fusionGlow * 0.5);
+    gradientColor += u_colorGold * fusionGlow * 0.3;
+  }
+
+  // Results phase: Subtle celebration shimmer
+  if (u_phase > 4.5) {
+    float shimmer = sin(vUv.x * 50.0 + time * 3.0) * sin(vUv.y * 50.0 + time * 2.0);
+    shimmer = max(0.0, shimmer);
+    gradientColor = mix(gradientColor, u_colorChampagne, shimmer * 0.15);
+  }
+
   // Add champagne highlights on peaks
   float highlight = smoothstep(0.3, 0.6, vElevation);
   gradientColor = mix(gradientColor, u_colorChampagne, highlight * 0.3);
 
+  // Phase effect coloring
+  gradientColor += u_colorGold * vPhaseEffect * 0.5;
+
   // Subtle vein-like patterns
-  float veins = abs(snoise2D(vUv * 15.0 + vec2(u_time * 0.05, 0.0)));
+  float veins = abs(snoise2D(vUv * 15.0 + vec2(time * 0.15, 0.0)));
   veins = smoothstep(0.4, 0.5, veins);
   gradientColor = mix(gradientColor, u_colorGold * 0.5, veins * 0.15);
 
-  // Ambient pulsing glow
-  float pulse = sin(u_time * 0.5) * 0.5 + 0.5;
-  float glow = smoothstep(0.2, 0.5, vElevation) * pulse * 0.2;
+  // Ambient pulsing glow - intensity varies by phase
+  float pulse = sin(time * 1.5) * 0.5 + 0.5;
+  float glow = smoothstep(0.2, 0.5, vElevation) * pulse * u_pulseIntensity;
   gradientColor += u_colorGold * glow;
 
   // Edge darkening (vignette effect)
@@ -241,32 +393,65 @@ void main() {
 
 interface OrganicMeshProps {
   mouse: { x: number; y: number };
-  frequency?: number;
-  amplitude?: number;
+  phase: ShaderPhase;
   intensity?: number;
 }
 
-function OrganicMesh({ mouse, frequency = 0.5, amplitude = 0.15, intensity = 1.0 }: OrganicMeshProps) {
+function OrganicMesh({ mouse, phase, intensity = 1.0 }: OrganicMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const { viewport } = useThree();
+
+  // Animated uniform values for GSAP transitions
+  const animatedValues = useRef({
+    frequency: PHASE_CONFIGS[ShaderPhase.INTRO].frequency,
+    amplitude: PHASE_CONFIGS[ShaderPhase.INTRO].amplitude,
+    timeSpeed: PHASE_CONFIGS[ShaderPhase.INTRO].timeSpeed,
+    waveComplexity: PHASE_CONFIGS[ShaderPhase.INTRO].waveComplexity,
+    vortexStrength: PHASE_CONFIGS[ShaderPhase.INTRO].vortexStrength,
+    pulseIntensity: PHASE_CONFIGS[ShaderPhase.INTRO].pulseIntensity,
+    colorShift: PHASE_CONFIGS[ShaderPhase.INTRO].colorShift,
+  });
 
   // Create shader material with uniforms
   const uniforms = useMemo(
     () => ({
       u_time: { value: 0 },
       u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
-      u_frequency: { value: frequency },
-      u_amplitude: { value: amplitude },
+      u_frequency: { value: animatedValues.current.frequency },
+      u_amplitude: { value: animatedValues.current.amplitude },
       u_mouseInfluence: { value: 0.5 },
       u_colorGold: { value: COLORS.gold },
       u_colorMaroon: { value: COLORS.maroon },
       u_colorChampagne: { value: COLORS.champagne },
       u_colorDark: { value: COLORS.dark },
-      u_phase: { value: 0 },
+      u_phase: { value: phase },
       u_intensity: { value: intensity },
+      u_timeSpeed: { value: animatedValues.current.timeSpeed },
+      u_waveComplexity: { value: animatedValues.current.waveComplexity },
+      u_vortexStrength: { value: animatedValues.current.vortexStrength },
+      u_pulseIntensity: { value: animatedValues.current.pulseIntensity },
+      u_colorShift: { value: animatedValues.current.colorShift },
     }),
-    [frequency, amplitude, intensity]
+    []
   );
+
+  // GSAP transition when phase changes
+  useEffect(() => {
+    const config = PHASE_CONFIGS[phase];
+    const transitionDuration = phase === ShaderPhase.FUSION ? 0.5 : 1.5;
+
+    gsap.to(animatedValues.current, {
+      frequency: config.frequency,
+      amplitude: config.amplitude,
+      timeSpeed: config.timeSpeed,
+      waveComplexity: config.waveComplexity,
+      vortexStrength: config.vortexStrength,
+      pulseIntensity: config.pulseIntensity,
+      colorShift: config.colorShift,
+      duration: transitionDuration,
+      ease: phase === ShaderPhase.FUSION ? 'power2.in' : 'power2.inOut',
+    });
+  }, [phase]);
 
   // Animation loop
   useFrame((state) => {
@@ -274,8 +459,19 @@ function OrganicMesh({ mouse, frequency = 0.5, amplitude = 0.15, intensity = 1.0
       const material = meshRef.current.material as THREE.ShaderMaterial;
       material.uniforms.u_time.value = state.clock.elapsedTime;
 
+      // Update uniforms from animated values
+      material.uniforms.u_frequency.value = animatedValues.current.frequency;
+      material.uniforms.u_amplitude.value = animatedValues.current.amplitude;
+      material.uniforms.u_timeSpeed.value = animatedValues.current.timeSpeed;
+      material.uniforms.u_waveComplexity.value = animatedValues.current.waveComplexity;
+      material.uniforms.u_vortexStrength.value = animatedValues.current.vortexStrength;
+      material.uniforms.u_pulseIntensity.value = animatedValues.current.pulseIntensity;
+      material.uniforms.u_colorShift.value = animatedValues.current.colorShift;
+      material.uniforms.u_phase.value = phase;
+      material.uniforms.u_intensity.value = intensity;
+
       // Smooth mouse lerp
-      const targetMouse = new THREE.Vector2(mouse.x, 1 - mouse.y); // Flip Y
+      const targetMouse = new THREE.Vector2(mouse.x, 1 - mouse.y);
       material.uniforms.u_mouse.value.lerp(targetMouse, 0.05);
     }
   });
@@ -294,15 +490,13 @@ function OrganicMesh({ mouse, frequency = 0.5, amplitude = 0.15, intensity = 1.0
 }
 
 interface OrganicBackgroundProps {
-  frequency?: number;
-  amplitude?: number;
+  phase?: ShaderPhase;
   intensity?: number;
   className?: string;
 }
 
 export function OrganicBackground({
-  frequency = 0.5,
-  amplitude = 0.15,
+  phase = ShaderPhase.INTRO,
   intensity = 1.0,
   className = '',
 }: OrganicBackgroundProps) {
@@ -377,12 +571,7 @@ export function OrganicBackground({
         }}
         dpr={[1, 2]}
       >
-        <OrganicMesh
-          mouse={mouse}
-          frequency={frequency}
-          amplitude={amplitude}
-          intensity={intensity}
-        />
+        <OrganicMesh mouse={mouse} phase={phase} intensity={intensity} />
       </Canvas>
     </div>
   );

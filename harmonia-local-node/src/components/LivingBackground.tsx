@@ -23,6 +23,7 @@ import { OrganicBackground, ShaderPhase } from './WebGL/OrganicBackground';
 const DNAHelix3D = lazy(() => import('./3D/DNAHelix3D'));
 const CelticKnotLogo = lazy(() => import('./WebGL/CelticKnotLogo'));
 const ShaderEye = lazy(() => import('./WebGL/ShaderEye'));
+const NeuralNetwork = lazy(() => import('./WebGL/NeuralNetwork'));
 
 // Styles
 const styles = {
@@ -1386,7 +1387,36 @@ export function LivingBackground() {
         )}
 
         {state.currentPhase === Phase.PSYCHOMETRIC && (
-          <OrbitVisualization key="orbit" rotationSpeed={typingSpeed} />
+          <motion.div
+            key="psychometric"
+            style={styles.layer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            {/* Neural Network background - Session 6 */}
+            <Suspense fallback={null}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0.6,
+                }}
+              >
+                <NeuralNetwork
+                  size={Math.min(window.innerWidth, window.innerHeight) * 0.9}
+                  activity={typingSpeed}
+                />
+              </div>
+            </Suspense>
+            {/* Orbit overlay */}
+            <OrbitVisualization rotationSpeed={typingSpeed} />
+          </motion.div>
         )}
 
         {state.currentPhase === Phase.BIOMETRIC && (

@@ -305,9 +305,10 @@ function GlowRings() {
 interface CelticKnotLogoProps {
   size?: number;
   className?: string;
+  onClick?: () => void;
 }
 
-export function CelticKnotLogo({ size = 300, className = '' }: CelticKnotLogoProps) {
+export function CelticKnotLogo({ size = 300, className = '', onClick }: CelticKnotLogoProps) {
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
   const [isHovered, setIsHovered] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -340,12 +341,14 @@ export function CelticKnotLogo({ size = 300, className = '' }: CelticKnotLogoPro
       <div
         ref={containerRef}
         className={className}
+        onClick={onClick}
         style={{
           width: size,
           height: size,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          cursor: onClick ? 'pointer' : 'default',
         }}
       >
         <img
@@ -365,6 +368,7 @@ export function CelticKnotLogo({ size = 300, className = '' }: CelticKnotLogoPro
     <div
       ref={containerRef}
       className={className}
+      onClick={onClick}
       style={{
         width: size,
         height: size,

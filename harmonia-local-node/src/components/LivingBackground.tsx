@@ -1324,9 +1324,15 @@ function FusionVisualization() {
 // MAIN COMPONENT
 // ============================================
 export function LivingBackground() {
-  const { state } = useApp();
+  const { state, completeStation, goToPhase } = useApp();
   const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
   const [typingSpeed, setTypingSpeed] = useState(1);
+
+  // Handler for clicking the intro logo to advance to visual phase
+  const handleIntroComplete = useCallback(() => {
+    completeStation(Phase.INTRO);
+    goToPhase(Phase.VISUAL);
+  }, [completeStation, goToPhase]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     setMousePosition({
@@ -1382,17 +1388,25 @@ export function LivingBackground() {
           >
             <AdvancedParticleSwarm withLogoMask={true} />
             {/* Celtic Knot Logo - WebGL particle version (Session 4) */}
+            {/* Click to advance to Visual phase */}
             <Suspense fallback={null}>
               <div
                 style={{
                   position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   zIndex: 10,
                 }}
               >
-                <CelticKnotLogo size={Math.min(window.innerWidth * 0.4, 350)} />
+                <CelticKnotLogo
+                  size={Math.min(window.innerWidth * 0.4, 350)}
+                  onClick={handleIntroComplete}
+                />
               </div>
             </Suspense>
           </motion.div>

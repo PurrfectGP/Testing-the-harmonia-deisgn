@@ -7,7 +7,7 @@
  * Uses vertex displacement with simplex noise for organic flowing effect
  */
 
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import gsap from 'gsap';
@@ -91,10 +91,16 @@ const PHASE_CONFIGS = {
   },
 };
 
-// Enhanced vertex shader with phase-reactive displacement
+// Trail size for mouse history
+const TRAIL_SIZE = 5;
+
+// Enhanced vertex shader with phase-reactive displacement and mouse trail
 const vertexShader = `
 uniform float u_time;
 uniform vec2 u_mouse;
+uniform vec2 u_mouseTrail[5];
+uniform float u_trailDecay[5];
+uniform float u_mouseVelocity;
 uniform float u_frequency;
 uniform float u_amplitude;
 uniform float u_mouseInfluence;
@@ -107,6 +113,7 @@ varying vec2 vUv;
 varying float vElevation;
 varying float vDistortion;
 varying float vPhaseEffect;
+varying float vMouseProximity;
 
 // Simplex noise functions
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -239,20 +246,44 @@ void main() {
     vortex *= exp(-dist * 0.5); // Fade with distance
   }
 
-  // Mouse interaction - creates organic ripple
+  // Enhanced mouse interaction with trail and spring physics
   vec2 mousePos = u_mouse * 2.0 - 1.0;
   float mouseDist = distance(pos.xy, mousePos);
-  float mouseWave = sin(mouseDist * 10.0 - u_time * 3.0) * exp(-mouseDist * 2.0);
-  float mouseEffect = mouseWave * u_mouseInfluence;
+
+  // Primary mouse ripple with velocity-based intensity
+  float velocityBoost = 1.0 + u_mouseVelocity * 2.0;
+  float mouseWave = sin(mouseDist * 12.0 - u_time * 4.0) * exp(-mouseDist * 1.8);
+  float primaryEffect = mouseWave * u_mouseInfluence * velocityBoost;
+
+  // Bulge effect - push vertices away from cursor
+  float bulgeRadius = 0.4;
+  float bulgePower = smoothstep(bulgeRadius, 0.0, mouseDist);
+  float bulgeEffect = bulgePower * 0.15 * (1.0 + u_mouseVelocity);
+
+  // Mouse trail ripples - fading echoes of previous positions
+  float trailEffect = 0.0;
+  for (int i = 0; i < 5; i++) {
+    vec2 trailPos = u_mouseTrail[i] * 2.0 - 1.0;
+    float trailDist = distance(pos.xy, trailPos);
+    float trailWave = sin(trailDist * 8.0 - u_time * 2.5 - float(i) * 0.5) * exp(-trailDist * 2.5);
+    trailEffect += trailWave * u_trailDecay[i] * 0.3;
+  }
+
+  // Total mouse effect
+  float mouseEffect = (primaryEffect + bulgeEffect + trailEffect) * u_mouseInfluence;
+
+  // Track closest mouse proximity for fragment shader
+  float mouseProximity = exp(-mouseDist * 3.0);
 
   // Combine all effects
-  float elevation = (noiseVal + detailNoise + neuralSpike + helixTwist + vortex) * u_amplitude + mouseEffect * 0.15;
+  float elevation = (noiseVal + detailNoise + neuralSpike + helixTwist + vortex) * u_amplitude + mouseEffect * 0.2;
 
   pos.z += elevation;
 
   vElevation = elevation;
   vDistortion = noiseVal;
   vPhaseEffect = neuralSpike + helixTwist + vortex;
+  vMouseProximity = mouseProximity;
 
   gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 }
@@ -275,6 +306,7 @@ varying vec2 vUv;
 varying float vElevation;
 varying float vDistortion;
 varying float vPhaseEffect;
+varying float vMouseProximity;
 
 // Simplex 2D noise for fragment effects
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -375,6 +407,11 @@ void main() {
   float glow = smoothstep(0.2, 0.5, vElevation) * pulse * u_pulseIntensity;
   gradientColor += u_colorGold * glow;
 
+  // Mouse proximity highlighting - golden glow near cursor
+  float mouseGlow = vMouseProximity * 0.4;
+  gradientColor = mix(gradientColor, u_colorChampagne, mouseGlow);
+  gradientColor += u_colorGold * vMouseProximity * 0.15;
+
   // Edge darkening (vignette effect)
   float vignette = 1.0 - length(vUv - 0.5) * 0.8;
   vignette = smoothstep(0.0, 1.0, vignette);
@@ -393,11 +430,13 @@ void main() {
 
 interface OrganicMeshProps {
   mouse: { x: number; y: number };
+  mouseTrail: Array<{ x: number; y: number }>;
+  mouseVelocity: number;
   phase: ShaderPhase;
   intensity?: number;
 }
 
-function OrganicMesh({ mouse, phase, intensity = 1.0 }: OrganicMeshProps) {
+function OrganicMesh({ mouse, mouseTrail, mouseVelocity, phase, intensity = 1.0 }: OrganicMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const { viewport } = useThree();
 
@@ -417,9 +456,12 @@ function OrganicMesh({ mouse, phase, intensity = 1.0 }: OrganicMeshProps) {
     () => ({
       u_time: { value: 0 },
       u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
+      u_mouseTrail: { value: Array(TRAIL_SIZE).fill(null).map(() => new THREE.Vector2(0.5, 0.5)) },
+      u_trailDecay: { value: [1.0, 0.8, 0.6, 0.4, 0.2] },
+      u_mouseVelocity: { value: 0 },
       u_frequency: { value: animatedValues.current.frequency },
       u_amplitude: { value: animatedValues.current.amplitude },
-      u_mouseInfluence: { value: 0.5 },
+      u_mouseInfluence: { value: 0.6 },
       u_colorGold: { value: COLORS.gold },
       u_colorMaroon: { value: COLORS.maroon },
       u_colorChampagne: { value: COLORS.champagne },
@@ -470,9 +512,17 @@ function OrganicMesh({ mouse, phase, intensity = 1.0 }: OrganicMeshProps) {
       material.uniforms.u_phase.value = phase;
       material.uniforms.u_intensity.value = intensity;
 
-      // Smooth mouse lerp
+      // Smooth mouse lerp with spring physics
       const targetMouse = new THREE.Vector2(mouse.x, 1 - mouse.y);
-      material.uniforms.u_mouse.value.lerp(targetMouse, 0.05);
+      material.uniforms.u_mouse.value.lerp(targetMouse, 0.08);
+
+      // Update mouse trail uniforms
+      mouseTrail.forEach((pos, i) => {
+        material.uniforms.u_mouseTrail.value[i].set(pos.x, 1 - pos.y);
+      });
+
+      // Update velocity with smooth decay
+      material.uniforms.u_mouseVelocity.value += (mouseVelocity - material.uniforms.u_mouseVelocity.value) * 0.1;
     }
   });
 
@@ -501,22 +551,94 @@ export function OrganicBackground({
   className = '',
 }: OrganicBackgroundProps) {
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
+  const [mouseTrail, setMouseTrail] = useState<Array<{ x: number; y: number }>>(
+    Array(TRAIL_SIZE).fill({ x: 0.5, y: 0.5 })
+  );
+  const [mouseVelocity, setMouseVelocity] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastMouseRef = useRef({ x: 0.5, y: 0.5, time: Date.now() });
+  const trailUpdateRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Update mouse position with velocity tracking
+  const updateMousePosition = useCallback((x: number, y: number) => {
+    const now = Date.now();
+    const last = lastMouseRef.current;
+    const dt = Math.max(1, now - last.time);
+    const dx = x - last.x;
+    const dy = y - last.y;
+    const velocity = Math.sqrt(dx * dx + dy * dy) / dt * 100;
+
+    lastMouseRef.current = { x, y, time: now };
+    setMouse({ x, y });
+    setMouseVelocity(Math.min(velocity, 2)); // Cap velocity
+  }, []);
+
+  // Update trail periodically for smooth decay
+  useEffect(() => {
+    const updateTrail = () => {
+      setMouseTrail((prev) => {
+        const newTrail = [{ ...mouse }, ...prev.slice(0, TRAIL_SIZE - 1)];
+        return newTrail;
+      });
+    };
+
+    trailUpdateRef.current = setInterval(updateTrail, 50);
+    return () => {
+      if (trailUpdateRef.current) clearInterval(trailUpdateRef.current);
+    };
+  }, [mouse]);
 
   // Track mouse position
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setMouse({
-          x: (e.clientX - rect.left) / rect.width,
-          y: (e.clientY - rect.top) / rect.height,
-        });
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+        updateMousePosition(x, y);
+      }
+    };
+
+    // Touch support
+    const handleTouchMove = (e: TouchEvent) => {
+      if (containerRef.current && e.touches.length > 0) {
+        const touch = e.touches[0];
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = (touch.clientX - rect.left) / rect.width;
+        const y = (touch.clientY - rect.top) / rect.height;
+        updateMousePosition(x, y);
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (containerRef.current && e.touches.length > 0) {
+        const touch = e.touches[0];
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = (touch.clientX - rect.left) / rect.width;
+        const y = (touch.clientY - rect.top) / rect.height;
+        // Reset trail on new touch
+        setMouseTrail(Array(TRAIL_SIZE).fill({ x, y }));
+        updateMousePosition(x, y);
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, [updateMousePosition]);
+
+  // Decay velocity over time
+  useEffect(() => {
+    const decayInterval = setInterval(() => {
+      setMouseVelocity((v) => v * 0.95);
+    }, 50);
+    return () => clearInterval(decayInterval);
   }, []);
 
   // Check for reduced motion preference
@@ -571,7 +693,13 @@ export function OrganicBackground({
         }}
         dpr={[1, 2]}
       >
-        <OrganicMesh mouse={mouse} phase={phase} intensity={intensity} />
+        <OrganicMesh
+          mouse={mouse}
+          mouseTrail={mouseTrail}
+          mouseVelocity={mouseVelocity}
+          phase={phase}
+          intensity={intensity}
+        />
       </Canvas>
     </div>
   );

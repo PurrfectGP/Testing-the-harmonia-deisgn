@@ -22,10 +22,15 @@ import { OrganicBackground, ShaderPhase } from './WebGL/OrganicBackground';
 // Lazy load 3D/WebGL components for performance
 const CelticKnotLogo = lazy(() => import('./WebGL/CelticKnotLogo'));
 const ShaderEye = lazy(() => import('./WebGL/ShaderEye'));
-const NeuralNetwork = lazy(() => import('./WebGL/NeuralNetwork'));
 const ShaderHelix = lazy(() => import('./WebGL/ShaderHelix'));
 const FusionVortex = lazy(() => import('./WebGL/FusionVortex'));
 const CelebrationBurst = lazy(() => import('./WebGL/CelebrationBurst'));
+
+// Session 16-20: Quiz-Reactive WebGL Components
+const ReactiveNeuralNetwork = lazy(() => import('./WebGL/ReactiveNeuralNetwork'));
+const QuantumOrbit = lazy(() => import('./WebGL/QuantumOrbit'));
+const ThoughtStream = lazy(() => import('./WebGL/ThoughtStream'));
+const PulseField = lazy(() => import('./WebGL/PulseField'));
 
 // Styles
 const styles = {
@@ -1057,114 +1062,6 @@ function EyeVisualization({ mouseX = 0.5, mouseY = 0.5 }: { mouseX?: number; mou
 }
 
 // ============================================
-// ORBIT SVG LAYER (Phase 2: Psychometric)
-// ============================================
-function OrbitVisualization({ rotationSpeed = 1 }: { rotationSpeed?: number }) {
-  return (
-    <motion.div
-      style={styles.layer}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.8 }}
-    >
-      <motion.svg
-        viewBox="0 0 200 200"
-        style={styles.svgContainer}
-      >
-        <defs>
-          <filter id="orbitGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        <motion.circle
-          cx="100"
-          cy="100"
-          r="85"
-          stroke="#D4A853"
-          strokeWidth="1"
-          strokeDasharray="4 3"
-          fill="none"
-          opacity="0.5"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 30 / rotationSpeed, repeat: Infinity, ease: 'linear' }}
-          style={{ transformOrigin: 'center' }}
-        />
-
-        <motion.circle
-          cx="100"
-          cy="100"
-          r="60"
-          stroke="#D4A853"
-          strokeWidth="1"
-          strokeDasharray="4 3"
-          fill="none"
-          opacity="0.4"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 20 / rotationSpeed, repeat: Infinity, ease: 'linear' }}
-          style={{ transformOrigin: 'center' }}
-        />
-
-        <motion.circle
-          cx="100"
-          cy="100"
-          r="35"
-          stroke="#D4A853"
-          strokeWidth="1"
-          strokeDasharray="4 3"
-          fill="none"
-          opacity="0.3"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 15 / rotationSpeed, repeat: Infinity, ease: 'linear' }}
-          style={{ transformOrigin: 'center' }}
-        />
-
-        <motion.circle
-          cx="100"
-          cy="100"
-          r="10"
-          fill="#D4A853"
-          filter="url(#orbitGlow)"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.5 }}
-        />
-
-        {[0, 120, 240].map((angle, i) => (
-          <motion.g
-            key={i}
-            animate={{ rotate: 360 }}
-            transition={{ duration: (25 - i * 5) / rotationSpeed, repeat: Infinity, ease: 'linear' }}
-            style={{ transformOrigin: '100px 100px' }}
-          >
-            <circle
-              cx={100 + Math.cos((angle * Math.PI) / 180) * (85 - i * 25)}
-              cy={100 + Math.sin((angle * Math.PI) / 180) * (85 - i * 25)}
-              r="6"
-              fill="#722F37"
-            />
-            <line
-              x1="100"
-              y1="100"
-              x2={100 + Math.cos((angle * Math.PI) / 180) * (85 - i * 25)}
-              y2={100 + Math.sin((angle * Math.PI) / 180) * (85 - i * 25)}
-              stroke="#D4A853"
-              strokeWidth="1"
-              opacity="0.5"
-            />
-          </motion.g>
-        ))}
-      </motion.svg>
-    </motion.div>
-  );
-}
-
-// ============================================
 // HELIX LAYER (Phase 3: Biometric) - Session 7 WebGL Shader Enhanced
 // ============================================
 function HelixVisualization({ isGlowing = false }: { isGlowing?: boolean }) {
@@ -1326,7 +1223,6 @@ function FusionVisualization() {
 export function LivingBackground() {
   const { state, completeStation, goToPhase } = useApp();
   const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
-  const [typingSpeed, setTypingSpeed] = useState(1);
 
   // Handler for clicking the intro logo to advance to visual phase
   const handleIntroComplete = useCallback(() => {
@@ -1345,14 +1241,6 @@ export function LivingBackground() {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [handleMouseMove]);
-
-  useEffect(() => {
-    const handleTypingSpeed = (e: CustomEvent) => {
-      setTypingSpeed(e.detail.speed || 1);
-    };
-    window.addEventListener('typing-speed' as any, handleTypingSpeed);
-    return () => window.removeEventListener('typing-speed' as any, handleTypingSpeed);
-  }, []);
 
   // Map AppContext Phase to ShaderPhase for WebGL background
   const shaderPhase = useMemo(() => {
@@ -1447,7 +1335,49 @@ export function LivingBackground() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
           >
-            {/* Neural Network background - Session 6 */}
+            {/* Session 19: PulseField - Ambient reactive background grid */}
+            <Suspense fallback={null}>
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  opacity: 0.4,
+                  zIndex: 1,
+                }}
+              >
+                <PulseField />
+              </div>
+            </Suspense>
+
+            {/* Session 18: ThoughtStream - Consciousness flow visualization */}
+            <Suspense fallback={null}>
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  opacity: 0.5,
+                  zIndex: 2,
+                }}
+              >
+                <ThoughtStream />
+              </div>
+            </Suspense>
+
+            {/* Session 16: ReactiveNeuralNetwork - Quiz-reactive neural firing */}
+            <Suspense fallback={null}>
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  opacity: 0.7,
+                  zIndex: 3,
+                }}
+              >
+                <ReactiveNeuralNetwork />
+              </div>
+            </Suspense>
+
+            {/* Session 17: QuantumOrbit - WebGL particle rings (replaces SVG) */}
             <Suspense fallback={null}>
               <div
                 style={{
@@ -1455,19 +1385,17 @@ export function LivingBackground() {
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: '100%',
-                  height: '100%',
-                  opacity: 0.6,
+                  width: '40%',
+                  height: '40%',
+                  maxWidth: '400px',
+                  maxHeight: '400px',
+                  zIndex: 4,
+                  pointerEvents: 'none',
                 }}
               >
-                <NeuralNetwork
-                  size={Math.min(window.innerWidth, window.innerHeight) * 0.9}
-                  activity={typingSpeed}
-                />
+                <QuantumOrbit />
               </div>
             </Suspense>
-            {/* Orbit overlay */}
-            <OrbitVisualization rotationSpeed={typingSpeed} />
           </motion.div>
         )}
 

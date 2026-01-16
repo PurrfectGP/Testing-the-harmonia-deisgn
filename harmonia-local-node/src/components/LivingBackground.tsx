@@ -19,8 +19,9 @@ import { useApp, Phase } from '../context/AppContext';
 import { Logo } from './Logo';
 import { OrganicBackground, ShaderPhase } from './WebGL/OrganicBackground';
 
-// Lazy load 3D Helix for performance
+// Lazy load 3D components for performance
 const DNAHelix3D = lazy(() => import('./3D/DNAHelix3D'));
+const CelticKnotLogo = lazy(() => import('./WebGL/CelticKnotLogo'));
 
 // Styles
 const styles = {
@@ -1331,7 +1332,30 @@ export function LivingBackground() {
 
       <AnimatePresence mode="wait">
         {state.currentPhase === Phase.INTRO && (
-          <AdvancedParticleSwarm key="particles" withLogoMask={true} />
+          <motion.div
+            key="intro-container"
+            style={styles.layer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <AdvancedParticleSwarm withLogoMask={true} />
+            {/* Celtic Knot Logo - WebGL particle version (Session 4) */}
+            <Suspense fallback={null}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 10,
+                }}
+              >
+                <CelticKnotLogo size={Math.min(window.innerWidth * 0.4, 350)} />
+              </div>
+            </Suspense>
+          </motion.div>
         )}
 
         {state.currentPhase === Phase.VISUAL && (

@@ -16,6 +16,21 @@
     pointer-events: none; /* Let clicks pass through */
 }
 
+#shatter-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+#shatter-canvas.active {
+    opacity: 1;
+}
         :root {
             /* Light Mode - Warm Parchment Base */
             --cream: #FAF6F1;
@@ -6165,7 +6180,9 @@
 
     </style>
 </head>
-<body><canvas id="particle-canvas"></canvas>
+    <body>
+<canvas id="particle-canvas"></canvas>
+<canvas id="shatter-canvas"></canvas>
 
     <!-- Navigation -->
     <nav>
@@ -8632,7 +8649,7 @@ class Particle {
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
         this.logoUrl = logoUrl;
-        
+       
         // Mouse tracking
         this.mouseX = -1000;
         this.mouseY = -1000;
@@ -8763,6 +8780,174 @@ class Particle {
     stop() {
         this.isRunning = false;
     }
+
+            // ================================
+// VORONOI SHATTER SYSTEM
+// ================================
+
+class ShatterSystem {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.shards = [];
+        this.isAnimating = false;
+        
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+    }
+    
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+    
+    // Generate random Voronoi seed points
+    generateSeeds(count = 15) {
+        const seeds = [];
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        
+        for (let i = 0; i < count; i++) {
+            seeds.push({
+                x: Math.random() * w,
+                y: Math.random() * h
+            });
+        }
+        return seeds;
+    }
+    
+    // Create a shard (polygon piece)
+    createShard(points, centerX, centerY, imageData) {
+        // Calculate velocity (explode outward from center)
+        const screenCenterX = this.canvas.width / 2;
+        const screenCenterY = this.canvas.height / 2;
+        
+        const dx = centerX - screenCenterX;
+        const dy = centerY - screenCenterY;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        
+        return {
+            points: points,
+            centerX: centerX,
+            centerY: centerY,
+            // Velocity - explode outward
+            vx: (dx / dist) * (8 + Math.random() * 12),
+            vy: (dy / dist) * (8 + Math.random() * 12),
+            // Rotation
+            rotation: 0,
+            rotationSpeed: (Math.random() - 0.5) * 0.3,
+            // Gravity
+            gravity: 0.5,
+            // Opacity for fade out
+            opacity: 1,
+            fadeRate: 0.008 + Math.random() * 0.008,
+            // Store image data for this shard
+            imageData: imageData
+        };
+    }
+    
+    // Capture current screen and create shards
+    shatter(sourceCanvas) {
+        // Get image data from source
+        const sourceCtx = sourceCanvas.getContext('2d');
+        const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+        
+        // Generate Voronoi-like regions (simplified)
+        const seeds = this.generateSeeds(20);
+        this.shards = [];
+        
+        // Create rectangular shards (simplified Voronoi)
+        const cols = 5;
+        const rows = 4;
+        const shardWidth = this.canvas.width / cols;
+        const shardHeight = this.canvas.height / rows;
+        
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const x = col * shardWidth;
+                const y = row * shardHeight;
+                
+                // Add some randomness to vertices
+                const jitter = 20;
+                const points = [
+                    { x: x + Math.random() * jitter, y: y + Math.random() * jitter },
+                    { x: x + shardWidth + Math.random() * jitter, y: y + Math.random() * jitter },
+                    { x: x + shardWidth + Math.random() * jitter, y: y + shardHeight + Math.random() * jitter },
+                    { x: x + Math.random() * jitter, y: y + shardHeight + Math.random() * jitter }
+                ];
+                
+                const centerX = x + shardWidth / 2;
+                const centerY = y + shardHeight / 2;
+                
+                this.shards.push(this.createShard(points, centerX, centerY, imageData));
+            }
+        }
+        
+        this.isAnimating = true;
+        this.animate();
+    }
+    
+    animate() {
+        if (!this.isAnimating) return;
+        
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        let activeShards = 0;
+        
+        this.shards.forEach(shard => {
+            if (shard.opacity <= 0) return;
+            activeShards++;
+            
+            // Update physics
+            shard.vy += shard.gravity;
+            shard.centerX += shard.vx;
+            shard.centerY += shard.vy;
+            shard.rotation += shard.rotationSpeed;
+            shard.opacity -= shard.fadeRate;
+            
+            // Update points relative to center movement
+            shard.points.forEach(p => {
+                p.x += shard.vx;
+                p.y += shard.vy;
+            });
+            
+            // Draw shard
+            this.ctx.save();
+            this.ctx.globalAlpha = Math.max(0, shard.opacity);
+            
+            // Create clipping path
+            this.ctx.beginPath();
+            this.ctx.moveTo(shard.points[0].x, shard.points[0].y);
+            for (let i = 1; i < shard.points.length; i++) {
+                this.ctx.lineTo(shard.points[i].x, shard.points[i].y);
+            }
+            this.ctx.closePath();
+            this.ctx.clip();
+            
+            // Draw the image data (simplified - draw colored rect)
+            this.ctx.fillStyle = `rgba(138, 94, 94, ${shard.opacity})`;
+            this.ctx.fillRect(
+                Math.min(...shard.points.map(p => p.x)),
+                Math.min(...shard.points.map(p => p.y)),
+                200, 200
+            );
+            
+            this.ctx.restore();
+        });
+        
+        if (activeShards > 0) {
+            requestAnimationFrame(() => this.animate());
+        } else {
+            this.isAnimating = false;
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+    
+    stop() {
+        this.isAnimating = false;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+}
 // ============================================
 // INITIALIZE PARTICLE SYSTEM
 // ============================================

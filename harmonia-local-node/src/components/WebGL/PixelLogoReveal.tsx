@@ -1,461 +1,155 @@
-/**
- * PixelLogoReveal - Sharp pixel particles that magnetize to form the Celtic Knot logo
- *
- * Features:
- * - Crisp, pixel-like particles (not blurry fireflies)
- * - Particles start scattered and magnetize to form logo shape
- * - Click to reveal/begin
- * - Sharp glow effect with clean edges
- */
+// src/components/WebGL/PixelLogoReveal.tsx
+import React, { useEffect, useRef } from 'react';
+// CORRECTED ASSET PATH based on your file structure
+import logoSrc from '../../assets/Celtic Knot (Transparent).png'; 
 
-import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
-
-// Celtic Knot path points - sampled from the SVG triquetra
-function generateLogoPoints(count: number): Float32Array {
-  const points: number[] = [];
-
-  // Generate points along the Celtic Knot paths
-  // Outer circle
-  for (let i = 0; i < count * 0.15; i++) {
-    const angle = (i / (count * 0.15)) * Math.PI * 2;
-    const r = 1.8;
-    points.push(
-      Math.cos(angle) * r,
-      Math.sin(angle) * r,
-      0
-    );
-  }
-
-  // Three main loops of triquetra
-  // Top loop
-  for (let i = 0; i < count * 0.2; i++) {
-    const t = i / (count * 0.2);
-    const angle = t * Math.PI * 2 - Math.PI / 2;
-    const r = 0.8 + Math.sin(t * Math.PI * 3) * 0.3;
-    const yOffset = -0.4;
-    points.push(
-      Math.cos(angle) * r * 0.8,
-      Math.sin(angle) * r * 0.6 + yOffset,
-      0
-    );
-  }
-
-  // Bottom left loop
-  for (let i = 0; i < count * 0.2; i++) {
-    const t = i / (count * 0.2);
-    const angle = t * Math.PI * 2 + Math.PI * 0.75;
-    const r = 0.6;
-    const xOffset = -0.5;
-    const yOffset = 0.4;
-    points.push(
-      Math.cos(angle) * r + xOffset,
-      Math.sin(angle) * r + yOffset,
-      0
-    );
-  }
-
-  // Bottom right loop
-  for (let i = 0; i < count * 0.2; i++) {
-    const t = i / (count * 0.2);
-    const angle = t * Math.PI * 2 + Math.PI * 0.25;
-    const r = 0.6;
-    const xOffset = 0.5;
-    const yOffset = 0.4;
-    points.push(
-      Math.cos(angle) * r + xOffset,
-      Math.sin(angle) * r + yOffset,
-      0
-    );
-  }
-
-  // Inner triquetra
-  for (let i = 0; i < count * 0.15; i++) {
-    const t = i / (count * 0.15);
-    const angle = t * Math.PI * 2;
-    const r = 0.35;
-    points.push(
-      Math.cos(angle) * r,
-      Math.sin(angle) * r,
-      0
-    );
-  }
-
-  // Center circle
-  for (let i = 0; i < count * 0.1; i++) {
-    const angle = (i / (count * 0.1)) * Math.PI * 2;
-    const r = 0.15;
-    points.push(
-      Math.cos(angle) * r,
-      Math.sin(angle) * r,
-      0
-    );
-  }
-
-  // Fill remaining with scattered points along paths
-  while (points.length < count * 3) {
-    const pathChoice = Math.random();
-    let x, y;
-
-    if (pathChoice < 0.3) {
-      // Outer circle
-      const angle = Math.random() * Math.PI * 2;
-      x = Math.cos(angle) * 1.8;
-      y = Math.sin(angle) * 1.8;
-    } else if (pathChoice < 0.6) {
-      // Connecting lines
-      const t = Math.random();
-      const startAngle = Math.floor(Math.random() * 3) * (Math.PI * 2 / 3);
-      x = Math.cos(startAngle) * t * 0.8;
-      y = Math.sin(startAngle) * t * 0.8;
-    } else {
-      // Inner area
-      const angle = Math.random() * Math.PI * 2;
-      const r = Math.random() * 0.5;
-      x = Math.cos(angle) * r;
-      y = Math.sin(angle) * r;
-    }
-
-    points.push(x, y, 0);
-  }
-
-  return new Float32Array(points.slice(0, count * 3));
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  targetX: number;
+  targetY: number;
+  color: string;
 }
 
-// Vertex shader for pixel particles
-const vertexShader = `
-  attribute float size;
-  attribute vec3 customColor;
-  attribute float alpha;
+const PixelLogoReveal: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestRef = useRef<number>();
+  const particlesRef = useRef<Particle[]>([]);
+  const mouseRef = useRef({ x: -1000, y: -1000 });
 
-  varying vec3 vColor;
-  varying float vAlpha;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  void main() {
-    vColor = customColor;
-    vAlpha = alpha;
+    // Set Canvas Size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = size * (300.0 / -mvPosition.z);
-    gl_Position = projectionMatrix * mvPosition;
-  }
-`;
+    // 1. THE SCANNER: Load the correct Celtic Knot image
+    const image = new Image();
+    image.src = logoSrc;
+    image.onload = () => {
+      // Create off-screen buffer to read pixel data
+      const buffer = document.createElement('canvas');
+      const bCtx = buffer.getContext('2d');
+      if (!bCtx) return;
 
-// Fragment shader for crisp pixel particles with sharp glow
-const fragmentShader = `
-  varying vec3 vColor;
-  varying float vAlpha;
-
-  void main() {
-    // Create sharp square/pixel shape
-    vec2 center = gl_PointCoord - vec2(0.5);
-
-    // Sharp pixel edge - using max for square shape
-    float dist = max(abs(center.x), abs(center.y));
-
-    // Core pixel (sharp)
-    float core = step(dist, 0.3);
-
-    // Sharp glow ring (not blurry)
-    float glowInner = step(dist, 0.4) - step(dist, 0.3);
-    float glowOuter = step(dist, 0.5) - step(dist, 0.4);
-
-    // Combine with sharp falloff
-    float intensity = core + glowInner * 0.6 + glowOuter * 0.3;
-
-    if (intensity < 0.1) discard;
-
-    // Add slight color variation in glow
-    vec3 glowColor = vColor * 1.2;
-    vec3 finalColor = mix(glowColor, vColor, core);
-
-    gl_FragColor = vec4(finalColor, intensity * vAlpha);
-  }
-`;
-
-interface PixelParticlesProps {
-  isRevealed: boolean;
-  onRevealComplete?: () => void;
-}
-
-function PixelParticles({ isRevealed, onRevealComplete }: PixelParticlesProps) {
-  const particlesRef = useRef<THREE.Points>(null);
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
-
-  const particleCount = 800;
-  const revealProgress = useRef(0);
-  const hasCalledComplete = useRef(false);
-
-  // Target positions (logo shape) and random start positions
-  const { targetPositions, startPositions, sizes, colors, alphas } = useMemo(() => {
-    const targets = generateLogoPoints(particleCount);
-    const starts = new Float32Array(particleCount * 3);
-    const sizesArr = new Float32Array(particleCount);
-    const colorsArr = new Float32Array(particleCount * 3);
-    const alphasArr = new Float32Array(particleCount);
-
-    // Gold color palette
-    const goldPrimary = new THREE.Color('#D4A853');
-    const goldLight = new THREE.Color('#F5D98A');
-    const maroon = new THREE.Color('#722F37');
-
-    for (let i = 0; i < particleCount; i++) {
-      // Random start positions (scattered)
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 2.5 + Math.random() * 2;
-      starts[i * 3] = Math.cos(angle) * radius;
-      starts[i * 3 + 1] = Math.sin(angle) * radius;
-      starts[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
-
-      // Particle sizes (pixels are uniform-ish)
-      sizesArr[i] = 4 + Math.random() * 4;
-
-      // Colors - mostly gold with some variation
-      const colorChoice = Math.random();
-      let color;
-      if (colorChoice < 0.6) {
-        color = goldPrimary;
-      } else if (colorChoice < 0.85) {
-        color = goldLight;
-      } else {
-        color = maroon;
+      // Scale logo to a good size (e.g., 350px width)
+      const logoWidth = 350;
+      const scale = logoWidth / image.width;
+      const logoHeight = image.height * scale;
+      
+      buffer.width = canvas.width;
+      buffer.height = canvas.height;
+      
+      // Center the image in the buffer
+      const startX = (canvas.width - logoWidth) / 2;
+      const startY = (canvas.height - logoHeight) / 2;
+      
+      bCtx.drawImage(image, startX, startY, logoWidth, logoHeight);
+      
+      // Scan the buffer for visible pixels
+      const imageData = bCtx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const particles: Particle[] = [];
+      
+      // Density: Higher number = fewer particles (4 is a good balance)
+      const density = 4; 
+      
+      for (let y = 0; y < canvas.height; y += density) {
+        for (let x = 0; x < canvas.width; x += density) {
+          const index = (y * canvas.width + x) * 4;
+          const alpha = data[index + 3];
+          const red = data[index];
+          
+          // If pixel is visible, add a particle
+          if (alpha > 128) {
+            particles.push({
+              // Start: Random positions off-screen or scattered
+              x: Math.random() < 0.5 ? 0 : canvas.width,
+              y: Math.random() * canvas.height,
+              vx: (Math.random() - 0.5) * 2,
+              vy: (Math.random() - 0.5) * 2,
+              targetX: x,
+              targetY: y,
+              // Color: Use the pixel's color OR force Gold/Void theme
+              color: `rgba(212, 168, 83, ${Math.random() * 0.5 + 0.5})` // Force Harmonia Gold
+            });
+          }
+        }
       }
-      colorsArr[i * 3] = color.r;
-      colorsArr[i * 3 + 1] = color.g;
-      colorsArr[i * 3 + 2] = color.b;
-
-      // Alpha
-      alphasArr[i] = 0.7 + Math.random() * 0.3;
-    }
-
-    return {
-      targetPositions: targets,
-      startPositions: starts,
-      sizes: sizesArr,
-      colors: colorsArr,
-      alphas: alphasArr,
+      
+      // Limit to ~4000 particles to match the Design Spec
+      particlesRef.current = particles.slice(0, 4500); 
+      startAnimation();
     };
   }, []);
 
-  // Animation frame
-  useFrame((state, delta) => {
-    if (!particlesRef.current) return;
+  const startAnimation = () => {
+    const animate = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
-    const time = state.clock.elapsedTime;
+      // Clear Screen with "Void" trails
+      ctx.fillStyle = 'rgba(18, 9, 10, 0.3)'; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (!isRevealed) {
-      // Magnetize: particles move toward target positions
-      revealProgress.current = Math.min(revealProgress.current + delta * 0.3, 1);
-      hasCalledComplete.current = false;
+      const friction = 0.94;
+      const ease = 0.05; 
+      const reactionRadius = 100;
 
-      const progress = revealProgress.current;
-      // Easing function for smooth magnetization
-      const eased = 1 - Math.pow(1 - progress, 3);
+      particlesRef.current.forEach(p => {
+        // Homing Physics
+        const dx = p.targetX - p.x;
+        const dy = p.targetY - p.y;
+        
+        p.vx += dx * ease;
+        p.vy += dy * ease;
 
-      for (let i = 0; i < particleCount; i++) {
-        const i3 = i * 3;
+        // Mouse Interaction
+        const mx = p.x - mouseRef.current.x;
+        const my = p.y - mouseRef.current.y;
+        const dist = Math.sqrt(mx * mx + my * my);
 
-        // Interpolate from start to target
-        positions[i3] = THREE.MathUtils.lerp(startPositions[i3], targetPositions[i3], eased);
-        positions[i3 + 1] = THREE.MathUtils.lerp(startPositions[i3 + 1], targetPositions[i3 + 1], eased);
-        positions[i3 + 2] = THREE.MathUtils.lerp(startPositions[i3 + 2], targetPositions[i3 + 2], eased);
-
-        // Add subtle shimmer when formed
-        if (progress > 0.8) {
-          const shimmer = Math.sin(time * 3 + i * 0.1) * 0.02 * (progress - 0.8) * 5;
-          positions[i3] += shimmer;
-          positions[i3 + 1] += shimmer;
+        if (dist < reactionRadius) {
+          const force = (reactionRadius - dist) / reactionRadius;
+          const angle = Math.atan2(my, mx);
+          p.vx -= Math.cos(angle) * force * 5; // Repel
+          p.vy -= Math.sin(angle) * force * 5;
         }
-      }
-    } else {
-      // Explode outward on reveal
-      revealProgress.current = Math.min(revealProgress.current + delta * 2, 1);
 
-      const progress = revealProgress.current;
+        p.vx *= friction;
+        p.vy *= friction;
+        p.x += p.vx;
+        p.y += p.vy;
 
-      for (let i = 0; i < particleCount; i++) {
-        const i3 = i * 3;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, 2, 2); 
+      });
 
-        // Explode from center
-        const dx = targetPositions[i3];
-        const dy = targetPositions[i3 + 1];
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const angle = Math.atan2(dy, dx);
+      requestRef.current = requestAnimationFrame(animate);
+    };
+    requestRef.current = requestAnimationFrame(animate);
+  };
 
-        const explosionRadius = dist + progress * 4;
-
-        positions[i3] = Math.cos(angle) * explosionRadius;
-        positions[i3 + 1] = Math.sin(angle) * explosionRadius;
-        positions[i3 + 2] = (Math.random() - 0.5) * progress * 2;
-      }
-
-      // Fade out
-      if (materialRef.current) {
-        materialRef.current.uniforms.globalAlpha = { value: 1 - progress };
-      }
-
-      // Callback when explosion complete
-      if (progress >= 1 && !hasCalledComplete.current) {
-        hasCalledComplete.current = true;
-        onRevealComplete?.();
-      }
-    }
-
-    particlesRef.current.geometry.attributes.position.needsUpdate = true;
-  });
-
-  // Reset progress when isRevealed changes
-  useEffect(() => {
-    if (isRevealed) {
-      revealProgress.current = 0;
-    }
-  }, [isRevealed]);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    mouseRef.current = { x: e.clientX, y: e.clientY };
+  };
 
   return (
-    <points ref={particlesRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[startPositions.slice(), 3]}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          args={[sizes, 1]}
-        />
-        <bufferAttribute
-          attach="attributes-customColor"
-          args={[colors, 3]}
-        />
-        <bufferAttribute
-          attach="attributes-alpha"
-          args={[alphas, 1]}
-        />
-      </bufferGeometry>
-      <shaderMaterial
-        ref={materialRef}
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        transparent
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-auto z-10"
+      onMouseMove={handleMouseMove}
+      style={{ background: 'transparent' }}
+    />
   );
-}
-
-// Click prompt text
-function ClickPrompt({ visible }: { visible: boolean }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    // Pulse effect
-    const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.1 + 1;
-    meshRef.current.scale.setScalar(pulse);
-    const material = meshRef.current.material as THREE.MeshBasicMaterial;
-    material.opacity = visible ? 0.6 + Math.sin(state.clock.elapsedTime * 3) * 0.2 : 0;
-  });
-
-  return (
-    <mesh ref={meshRef} position={[0, -2.2, 0]}>
-      <planeGeometry args={[2, 0.3]} />
-      <meshBasicMaterial
-        color="#D4A853"
-        transparent
-        opacity={0}
-      />
-    </mesh>
-  );
-}
-
-interface PixelLogoRevealProps {
-  onBegin: () => void;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-export function PixelLogoReveal({ onBegin, className = '', style = {} }: PixelLogoRevealProps) {
-  const [isRevealed, setIsRevealed] = useState(false);
-  const [isFormed, setIsFormed] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Detect when logo is formed (after ~3 seconds)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsFormed(true);
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleClick = useCallback(() => {
-    if (isFormed && !isRevealed) {
-      setIsRevealed(true);
-    }
-  }, [isFormed, isRevealed]);
-
-  const handleRevealComplete = useCallback(() => {
-    onBegin();
-  }, [onBegin]);
-
-  return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        cursor: isFormed && !isRevealed ? 'pointer' : 'default',
-        ...style,
-      }}
-      onClick={handleClick}
-    >
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 50 }}
-        style={{ background: 'transparent' }}
-        gl={{ alpha: true, antialias: true }}
-      >
-        <PixelParticles
-          isRevealed={isRevealed}
-          onRevealComplete={handleRevealComplete}
-        />
-        <ClickPrompt visible={isFormed && !isRevealed} />
-      </Canvas>
-
-      {/* Click to begin text overlay */}
-      {isFormed && !isRevealed && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '20%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            color: '#D4A853',
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: '1.2rem',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            opacity: 0.8,
-            animation: 'pulse 2s ease-in-out infinite',
-            pointerEvents: 'none',
-          }}
-        >
-          Click to Begin
-        </div>
-      )}
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-      `}</style>
-    </div>
-  );
-}
+};
 
 export default PixelLogoReveal;

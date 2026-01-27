@@ -8948,18 +8948,33 @@ class ShatterSystem {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 }
-// ============================================
-// INITIALIZE PARTICLE SYSTEM
-// ============================================
+// ================================
+// INITIALIZE SYSTEMS
+// ================================
 
-window.addEventListener('DOMContentLoaded', async () =>
+window.addEventListener('DOMContentLoaded', async () => {
     const logoUrl = HARMONIA_LOGO;
     
+    // Initialize Particle System
     const particleSystem = new ParticleSystem('particle-canvas', logoUrl);
     await particleSystem.init();
     particleSystem.start();
     
+    // Initialize Shatter System
+    const shatterSystem = new ShatterSystem('shatter-canvas');
+    
+    // Make systems globally accessible
     window.particleSystem = particleSystem;
+    window.shatterSystem = shatterSystem;
+    
+    // Test: Trigger shatter on click (temporary - for testing)
+    document.addEventListener('click', (e) => {
+        // Only trigger if clicking outside interactive elements
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.tagName === 'INPUT') return;
+        
+        const particleCanvas = document.getElementById('particle-canvas');
+        shatterSystem.shatter(particleCanvas);
+    });
 });
 </script>
 

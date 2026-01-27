@@ -178,13 +178,14 @@
             height: 42px;
             width: auto;
             display: block;
-            transition: transform 0.25s ease, filter 0.25s ease;
+            transition: transform 0.25s ease, filter 0.4s ease;
             filter: drop-shadow(0 0 6px rgba(160, 90, 90, 0.25))
                     drop-shadow(0 0 12px rgba(140, 75, 75, 0.15));
         }
 
         [data-theme="dark"] .logo img {
-            filter: drop-shadow(0 0 6px rgba(240, 200, 110, 0.3))
+            filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(0.95)
+                    drop-shadow(0 0 6px rgba(240, 200, 110, 0.3))
                     drop-shadow(0 0 12px rgba(245, 217, 138, 0.2));
         }
 
@@ -425,8 +426,8 @@
         .moon-icon { color: white; }
         
         /* Dark mode toggle icons - colors to match dark theme */
-        [data-theme="dark"] .sun-icon { color: #ff6b35; }
-        [data-theme="dark"] .moon-icon { color: #5e5ce6; }
+        [data-theme="dark"] .sun-icon { color: white; }
+        [data-theme="dark"] .moon-icon { color: #722F37; }
 
         /* Hero Section - FIXED: Wider text column */
         .hero {
@@ -2393,6 +2394,23 @@
             visibility: hidden; /* Takes up space but invisible */
         }
 
+        /* Synthesis logo styled to match other card icons (gold/maroon) */
+        .synthesis-logo-styled {
+            filter: 
+                brightness(0) saturate(100%)
+                invert(72%) sepia(50%) saturate(500%) hue-rotate(5deg) brightness(95%)
+                drop-shadow(2px 2px 0 rgba(114, 47, 55, 0.4))
+                drop-shadow(-1px -1px 0 rgba(114, 47, 55, 0.2));
+        }
+
+        [data-theme="dark"] .synthesis-logo-styled {
+            filter: 
+                brightness(0) saturate(100%)
+                invert(85%) sepia(30%) saturate(600%) hue-rotate(5deg) brightness(105%)
+                drop-shadow(2px 2px 0 rgba(114, 47, 55, 0.5))
+                drop-shadow(-1px -1px 0 rgba(114, 47, 55, 0.3));
+        }
+
         /* Show the spacer when animation completes so flex layout matches other cards */
         .science-card.synthesis-card.logo-in-header .card-visual.synthesis-icon-final,
         .science-card.synthesis-card.animation-complete .card-visual.synthesis-icon-final {
@@ -2509,6 +2527,16 @@
             width: 100%;
             height: 100%;
             filter: drop-shadow(0 0 8px rgba(212, 168, 83, 0.25));
+        }
+
+        /* Dark mode inversion for Harmonia mini-icon in synthesis animation */
+        .harmonia-mini-icon {
+            transition: filter 0.4s ease;
+        }
+        
+        [data-theme="dark"] .harmonia-mini-icon {
+            filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(0.95)
+                    drop-shadow(0 0 8px rgba(240, 200, 110, 0.3));
         }
 
         .card-title {
@@ -6497,7 +6525,7 @@
 
                                     <div class="card-header">
                                         <div class="card-visual synthesis-icon-final" onclick="toggleAllAnimations(); this.classList.add('rotating'); setTimeout(() => this.classList.remove('rotating'), 600);">
-                                            <img data-harmonia-logo alt="Harmonia">
+                                            <img data-harmonia-logo alt="Harmonia" class="abstract-icon synthesis-logo-styled">
                                             <span class="synthesis-pause-hint">Click to <span class="pause-btn-text">Pause</span></span>
                                         </div>
                                         <div class="card-title-group">

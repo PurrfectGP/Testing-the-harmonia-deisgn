@@ -6,7 +6,15 @@
     <title>Harmonia - The Compatibility Engine</title>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <style>
+    <style>#particle-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Above background, below content */
+    pointer-events: none; /* Let clicks pass through */
+}
 
         :root {
             /* Light Mode - Warm Parchment Base */
@@ -6157,7 +6165,7 @@
 
     </style>
 </head>
-<body>
+<body><canvas id="particle-canvas"></canvas>
 
     <!-- Navigation -->
     <nav>
@@ -8579,5 +8587,198 @@
         }
         window.spinLogo = spinLogo;
     </script>
+    </script>
+
+<script>
+// ============================================
+// PIXEL LOGO PARTICLE SYSTEM
+// ============================================
+
+class Particle {
+    // .<script>
+// ============================================
+// PIXEL LOGO PARTICLE SYSTEM
+// ============================================
+
+class Particle {
+    constructor(targetX, targetY, canvasWidth, canvasHeight) {
+        // Where this particle should end up (in the logo)
+        this.targetX = targetX;
+        this.targetY = targetY;
+        
+        // Start from a random edge of the screen
+        const edge = Math.floor(Math.random() * 4);
+        switch(edge) {
+            case 0: // Top
+                this.x = Math.random() * canvasWidth;
+                this.y = -10;
+                break;
+            case 1: // Right
+                this.x = canvasWidth + 10;
+                this.y = Math.random() * canvasHeight;
+                break;
+            case 2: // Bottom
+                this.x = Math.random() * canvasWidth;
+                this.y = canvasHeight + 10;
+                break;
+            case 3: // Left
+                this.x = -10;
+                this.y = Math.random() * canvasHeight;
+                break;
+        }
+        class ParticleSystem {
+    constructor(canvasId, logoUrl) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        this.logoUrl = logoUrl;
+        
+        // Mouse tracking
+        this.mouseX = -1000;
+        this.mouseY = -1000;
+        this.mouseRadius = 100;
+        
+        // Animation state
+        this.isRunning = false;
+        
+        // Setup
+        this.resize();
+        this.setupEventListeners();
+    }
+    
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+    
+    setupEventListeners() {
+        window.addEventListener('resize', () => this.resize());
+        
+        window.addEventListener('mousemove', (e) => {
+            this.mouseX = e.clientX;
+            this.mouseY = e.clientY;
+        });
+        
+        window.addEventListener('mouseleave', () => {
+            this.mouseX = -1000;
+            this.mouseY = -1000;
+        });
+    }
+    
+    // Load logo and extract gold pixel positions
+    async loadLogo() {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            
+            img.onload = () => {
+                // Create off-screen canvas to read pixels
+                const offscreen = document.createElement('canvas');
+                const offCtx = offscreen.getContext('2d');
+                
+                // Size the logo (adjust these for your desired logo size)
+                const logoWidth = 200;
+                const logoHeight = 200;
+                offscreen.width = logoWidth;
+                offscreen.height = logoHeight;
+                
+                // Draw logo to off-screen canvas
+                offCtx.drawImage(img, 0, 0, logoWidth, logoHeight);
+                
+                // Get pixel data
+                const imageData = offCtx.getImageData(0, 0, logoWidth, logoHeight);
+                const pixels = imageData.data;
+                
+                // Find non-transparent pixels
+                const targets = [];
+                const samplingRate = 2; // Check every 2nd pixel (adjust for density)
+                
+                for (let y = 0; y < logoHeight; y += samplingRate) {
+                    for (let x = 0; x < logoWidth; x += samplingRate) {
+                        const i = (y * logoWidth + x) * 4;
+                        const r = pixels[i];
+                        const g = pixels[i + 1];
+                        const b = pixels[i + 2];
+                        const a = pixels[i + 3];
+                        
+                        // If pixel is visible (not transparent)
+                        if (a > 128) {
+                            targets.push({ x, y });
+                        }
+                    }
+                }
+                
+                resolve(targets);
+            };
+            
+            img.onerror = reject;
+            img.src = this.logoUrl;
+        });
+    }
+    
+    // Create particles from logo targets
+    async init() {
+        const targets = await this.loadLogo();
+        
+        // Center the logo on screen
+        const offsetX = (this.canvas.width - 200) / 2;
+        const offsetY = (this.canvas.height - 200) / 2;
+        
+        // Create a particle for each target pixel
+        targets.forEach(target => {
+            const particle = new Particle(
+                target.x + offsetX,
+                target.y + offsetY,
+                this.canvas.width,
+                this.canvas.height
+            );
+            this.particles.push(particle);
+        });
+        
+        console.log(`Created ${this.particles.length} particles`);
+    }
+    
+    // Animation loop
+    animate() {
+        if (!this.isRunning) return;
+        
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Update and draw each particle
+        this.particles.forEach(particle => {
+            particle.update(this.mouseX, this.mouseY, this.mouseRadius);
+            particle.draw(this.ctx);
+        });
+        
+        // Next frame
+        requestAnimationFrame(() => this.animate());
+    }
+    
+    start() {
+        this.isRunning = true;
+        this.animate();
+    }
+    
+    stop() {
+        this.isRunning = false;
+    }
+// ============================================
+// INITIALIZE PARTICLE SYSTEM
+// ============================================
+
+window.addEventListener('DOMContentLoaded', async () => {
+    const logoUrl = HARMONIA_LOGO;
+    
+    const particleSystem = new ParticleSystem('particle-canvas', logoUrl);
+    await particleSystem.init();
+    particleSystem.start();
+    
+    window.particleSystem = particleSystem;
+});
+</script>.. all the code I gave you ...
+}
+</script>
+
 </body>
 </html>

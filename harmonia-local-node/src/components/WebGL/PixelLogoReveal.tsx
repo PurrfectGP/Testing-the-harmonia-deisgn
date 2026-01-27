@@ -1,6 +1,5 @@
-// src/components/WebGL/PixelLogoReveal.tsx
 import React, { useEffect, useRef } from 'react';
-// CORRECTED ASSET PATH: Uses your real Celtic Knot file
+// Ensure this matches your filename exactly
 import logoSrc from '../../assets/Celtic Knot (Transparent).png'; 
 
 interface Particle {
@@ -29,11 +28,16 @@ const PixelLogoReveal: React.FC = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // 1. THE SCANNER: Load the correct Celtic Knot image
+    console.log("LOG: Attempting to load logo from:", logoSrc);
+
+    // 1. THE SCANNER: Load the image
     const image = new Image();
     image.src = logoSrc;
+    
     image.onload = () => {
-      // Create off-screen buffer to read pixel data
+      console.log("LOG: Image loaded successfully!", image.width, "x", image.height);
+      
+      // Create off-screen buffer
       const buffer = document.createElement('canvas');
       const bCtx = buffer.getContext('2d');
       if (!bCtx) return;
@@ -46,18 +50,18 @@ const PixelLogoReveal: React.FC = () => {
       buffer.width = canvas.width;
       buffer.height = canvas.height;
       
-      // Center the image in the buffer
+      // Center the image
       const startX = (canvas.width - logoWidth) / 2;
       const startY = (canvas.height - logoHeight) / 2;
       
       bCtx.drawImage(image, startX, startY, logoWidth, logoHeight);
       
-      // Scan the buffer for visible pixels
+      // Scan pixels
       const imageData = bCtx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       const particles: Particle[] = [];
       
-      // Density: Higher number = fewer particles (4 is a good balance)
+      // Density: Higher number = fewer particles
       const density = 4; 
       
       for (let y = 0; y < canvas.height; y += density) {
@@ -65,28 +69,34 @@ const PixelLogoReveal: React.FC = () => {
           const index = (y * canvas.width + x) * 4;
           const alpha = data[index + 3];
           
-          // If pixel is visible, add a particle
           if (alpha > 128) {
             particles.push({
-              // Start: Random positions off-screen or scattered
               x: Math.random() < 0.5 ? 0 : canvas.width,
               y: Math.random() * canvas.height,
               vx: (Math.random() - 0.5) * 2,
               vy: (Math.random() - 0.5) * 2,
               targetX: x,
               targetY: y,
-              // Color: Force Harmonia Gold
               color: `rgba(212, 168, 83, ${Math.random() * 0.5 + 0.5})` 
             });
           }
         }
       }
       
-      // Limit to ~4500 particles to match the Design Spec
+      console.log(`LOG: Generated ${particles.length} particles.`);
       particlesRef.current = particles.slice(0, 4500); 
       startAnimation();
     };
-  };
+
+    image.onerror = (err) => {
+        console.error("LOG: Failed to load logo image.", err);
+    };
+
+    // Cleanup
+    return () => {
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+  }, []);
 
   const startAnimation = () => {
     const animate = () => {
@@ -95,23 +105,22 @@ const PixelLogoReveal: React.FC = () => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Clear Screen with "Void" trails
+      // Clear Screen
       ctx.fillStyle = 'rgba(18, 9, 10, 0.3)'; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const friction = 0.94;
       const ease = 0.05; 
-      const reactionRadius = 100;
+      const reactionRadius = 150;
 
       particlesRef.current.forEach(p => {
-        // Homing Physics
+        // Physics
         const dx = p.targetX - p.x;
         const dy = p.targetY - p.y;
         
         p.vx += dx * ease;
         p.vy += dy * ease;
 
-        // Mouse Interaction
         const mx = p.x - mouseRef.current.x;
         const my = p.y - mouseRef.current.y;
         const dist = Math.sqrt(mx * mx + my * my);
@@ -119,7 +128,7 @@ const PixelLogoReveal: React.FC = () => {
         if (dist < reactionRadius) {
           const force = (reactionRadius - dist) / reactionRadius;
           const angle = Math.atan2(my, mx);
-          p.vx -= Math.cos(angle) * force * 5; // Repel
+          p.vx -= Math.cos(angle) * force * 5; 
           p.vy -= Math.sin(angle) * force * 5;
         }
 
@@ -136,13 +145,6 @@ const PixelLogoReveal: React.FC = () => {
     };
     requestRef.current = requestAnimationFrame(animate);
   };
-  
-  // Clean up animation on unmount
-  useEffect(() => {
-      return () => {
-          if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      };
-  }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     mouseRef.current = { x: e.clientX, y: e.clientY };

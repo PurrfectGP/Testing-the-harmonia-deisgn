@@ -86,7 +86,7 @@ const PixelLogoReveal: React.FC = () => {
       particlesRef.current = particles.slice(0, 4500); 
       startAnimation();
     };
-  }, []);
+  };
 
   const startAnimation = () => {
     const animate = () => {
@@ -136,6 +136,13 @@ const PixelLogoReveal: React.FC = () => {
     };
     requestRef.current = requestAnimationFrame(animate);
   };
+  
+  // Clean up animation on unmount
+  useEffect(() => {
+      return () => {
+          if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      };
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     mouseRef.current = { x: e.clientX, y: e.clientY };

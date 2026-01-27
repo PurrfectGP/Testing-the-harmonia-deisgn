@@ -8609,8 +8609,6 @@
 // PIXEL LOGO PARTICLE SYSTEM
 // ============================================
 
-
-
 class Particle {
     constructor(targetX, targetY, canvasWidth, canvasHeight) {
         // Where this particle should end up (in the logo)
@@ -8637,13 +8635,64 @@ class Particle {
                 this.y = Math.random() * canvasHeight;
                 break;
         }
-        class ParticleSystem {
+        
+        // Velocity
+        this.vx = 0;
+        this.vy = 0;
+        
+        // Visual properties
+        this.size = Math.random() * 2 + 1;
+        this.alpha = Math.random() * 0.5 + 0.5;
+    }
+    
+    // Update particle position each frame
+    update(mouseX, mouseY, mouseRadius) {
+        // 1. HOMING FORCE - Pull toward target
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        
+        // Stronger pull when further away
+        const homingStrength = 0.02;
+        this.vx += dx * homingStrength;
+        this.vy += dy * homingStrength;
+        
+        // 2. MOUSE REPULSION - Push away from cursor
+        const mdx = this.x - mouseX;
+        const mdy = this.y - mouseY;
+        const mouseDistance = Math.sqrt(mdx * mdx + mdy * mdy);
+        
+        if (mouseDistance < mouseRadius) {
+            const force = (mouseRadius - mouseDistance) / mouseRadius;
+            const repelStrength = 8;
+            this.vx += (mdx / mouseDistance) * force * repelStrength;
+            this.vy += (mdy / mouseDistance) * force * repelStrength;
+        }
+        
+        // 3. FRICTION - Slow down over time
+        this.vx *= 0.92;
+        this.vy *= 0.92;
+        
+        // 4. APPLY VELOCITY
+        this.x += this.vx;
+        this.y += this.vy;
+    }
+    
+    // Draw the particle
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(212, 168, 83, ${this.alpha})`;
+        ctx.fill();
+    }
+}
+
+class ParticleSystem {
     constructor(canvasId, logoUrl) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
         this.logoUrl = logoUrl;
-       
+        
         // Mouse tracking
         this.mouseX = -1000;
         this.mouseY = -1000;
@@ -8687,7 +8736,7 @@ class Particle {
                 const offscreen = document.createElement('canvas');
                 const offCtx = offscreen.getContext('2d');
                 
-                // Size the logo (adjust these for your desired logo size)
+                // Size the logo
                 const logoWidth = 200;
                 const logoHeight = 200;
                 offscreen.width = logoWidth;
@@ -8702,17 +8751,13 @@ class Particle {
                 
                 // Find non-transparent pixels
                 const targets = [];
-                const samplingRate = 2; // Check every 2nd pixel (adjust for density)
+                const samplingRate = 2;
                 
                 for (let y = 0; y < logoHeight; y += samplingRate) {
                     for (let x = 0; x < logoWidth; x += samplingRate) {
                         const i = (y * logoWidth + x) * 4;
-                        const r = pixels[i];
-                        const g = pixels[i + 1];
-                        const b = pixels[i + 2];
                         const a = pixels[i + 3];
                         
-                        // If pixel is visible (not transparent)
                         if (a > 128) {
                             targets.push({ x, y });
                         }
@@ -8774,8 +8819,9 @@ class Particle {
     stop() {
         this.isRunning = false;
     }
-        }
-            // ================================
+}
+
+// ================================
 // VORONOI SHATTER SYSTEM
 // ================================
 
@@ -8795,7 +8841,6 @@ class ShatterSystem {
         this.canvas.height = window.innerHeight;
     }
     
-    // Generate random Voronoi seed points
     generateSeeds(count = 15) {
         const seeds = [];
         const w = this.canvas.width;
@@ -8810,9 +8855,7 @@ class ShatterSystem {
         return seeds;
     }
     
-    // Create a shard (polygon piece)
     createShard(points, centerX, centerY, imageData) {
-        // Calculate velocity (explode outward from center)
         const screenCenterX = this.canvas.width / 2;
         const screenCenterY = this.canvas.height / 2;
         
@@ -8824,33 +8867,24 @@ class ShatterSystem {
             points: points,
             centerX: centerX,
             centerY: centerY,
-            // Velocity - explode outward
             vx: (dx / dist) * (8 + Math.random() * 12),
             vy: (dy / dist) * (8 + Math.random() * 12),
-            // Rotation
             rotation: 0,
             rotationSpeed: (Math.random() - 0.5) * 0.3,
-            // Gravity
             gravity: 0.5,
-            // Opacity for fade out
             opacity: 1,
             fadeRate: 0.008 + Math.random() * 0.008,
-            // Store image data for this shard
             imageData: imageData
         };
     }
     
-    // Capture current screen and create shards
     shatter(sourceCanvas) {
-        // Get image data from source
         const sourceCtx = sourceCanvas.getContext('2d');
         const imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
         
-        // Generate Voronoi-like regions (simplified)
         const seeds = this.generateSeeds(20);
         this.shards = [];
         
-        // Create rectangular shards (simplified Voronoi)
         const cols = 5;
         const rows = 4;
         const shardWidth = this.canvas.width / cols;
@@ -8861,7 +8895,6 @@ class ShatterSystem {
                 const x = col * shardWidth;
                 const y = row * shardHeight;
                 
-                // Add some randomness to vertices
                 const jitter = 20;
                 const points = [
                     { x: x + Math.random() * jitter, y: y + Math.random() * jitter },
@@ -8892,24 +8925,20 @@ class ShatterSystem {
             if (shard.opacity <= 0) return;
             activeShards++;
             
-            // Update physics
             shard.vy += shard.gravity;
             shard.centerX += shard.vx;
             shard.centerY += shard.vy;
             shard.rotation += shard.rotationSpeed;
             shard.opacity -= shard.fadeRate;
             
-            // Update points relative to center movement
             shard.points.forEach(p => {
                 p.x += shard.vx;
                 p.y += shard.vy;
             });
             
-            // Draw shard
             this.ctx.save();
             this.ctx.globalAlpha = Math.max(0, shard.opacity);
             
-            // Create clipping path
             this.ctx.beginPath();
             this.ctx.moveTo(shard.points[0].x, shard.points[0].y);
             for (let i = 1; i < shard.points.length; i++) {
@@ -8918,7 +8947,6 @@ class ShatterSystem {
             this.ctx.closePath();
             this.ctx.clip();
             
-            // Draw the image data (simplified - draw colored rect)
             this.ctx.fillStyle = `rgba(138, 94, 94, ${shard.opacity})`;
             this.ctx.fillRect(
                 Math.min(...shard.points.map(p => p.x)),
@@ -8942,6 +8970,7 @@ class ShatterSystem {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 }
+
 // ================================
 // INITIALIZE SYSTEMS
 // ================================
@@ -8963,15 +8992,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // Test: Trigger shatter on click (temporary - for testing)
     document.addEventListener('click', (e) => {
-        // Only trigger if clicking outside interactive elements
         if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.tagName === 'INPUT') return;
         
         const particleCanvas = document.getElementById('particle-canvas');
         shatterSystem.shatter(particleCanvas);
     });
 });
-
-
+</script>
 
 </body>
 </html>
